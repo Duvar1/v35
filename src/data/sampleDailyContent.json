@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "verse": {
+      "arabic": "وَمَن يَتَّقِ اللَّهَ يَجْعَل لَّهُ مَخْرَجًا",
+      "turkish": "Kim Allah'a karşı gelmekten sakınırsa, Allah ona bir çıkış yolu verir.",
+      "reference": "Talak Suresi, 2. Ayet"
+    },
+    "hadith": {
+      "arabic": "إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ",
+      "turkish": "Ameller ancak niyetlere göredir.",
+      "reference": "Buhari, İman 1"
+    },
+    "prayer": {
+      "arabic": "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
+      "turkish": "Rabbimiz! Bize dünyada da iyilik ver, ahirette de iyilik ver ve bizi cehennem azabından koru.",
+      "reference": "Bakara Suresi, 201. Ayet"
+    }
+  },
+  {
+    "id": 2,
+    "verse": {
+      "arabic": "وَاللَّهُ يُحِبُّ الصَّابِرِينَ",
+      "turkish": "Allah sabredenleri sever.",
+      "reference": "Al-i İmran Suresi, 146. Ayet"
+    },
+    "hadith": {
+      "arabic": "الْمُؤْمِنُ مِرْآةُ الْمُؤْمِنِ",
+      "turkish": "Mümin, müminin aynasıdır.",
+      "reference": "Ebu Davud, Edeb 49"
+    },
+    "prayer": {
+      "arabic": "رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي",
+      "turkish": "Rabbim! Göğsümü genişlet ve işimi kolaylaştır.",
+      "reference": "Taha Suresi, 25-26. Ayetler"
+    }
+  }
+]

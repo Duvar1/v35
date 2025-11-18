@@ -1,0 +1,51 @@
+[
+  {
+    "id": 1,
+    "title": "Sabır Ayeti",
+    "text": "Ey iman edenler! Sabır ve namazla yardım isteyin. Şüphesiz Allah sabredenlerle beraberdir.",
+    "source": "Bakara Suresi, 153. Ayet",
+    "category": "ayet"
+  },
+  {
+    "id": 2,
+    "title": "Rahmet Hadisi",
+    "text": "Merhamet edenlere Rahman merhamet eder. Yeryüzündekilere merhamet edin ki, gökyüzündeki de size merhamet etsin.",
+    "source": "Tirmizi",
+    "category": "hadis"
+  },
+  {
+    "id": 3,
+    "title": "Sabah Duası",
+    "text": "Rabbimiz! Bize dünyada iyilik ver, ahirette de iyilik ver ve bizi ateş azabından koru.",
+    "source": "Bakara 201",
+    "category": "dua"
+  },
+  {
+    "id": 4,
+    "title": "Tevbe Ayeti",
+    "text": "De ki: Ey kendi aleyhlerine olan kullarım! Allah'ın rahmetinden ümit kesmeyin. Şüphesiz Allah bütün günahları bağışlar.",
+    "source": "Zümer Suresi, 53. Ayet",
+    "category": "ayet"
+  },
+  {
+    "id": 5,
+    "title": "İlim Hadisi",
+    "text": "İlim öğrenmek her Müslüman erkek ve kadına farzdır.",
+    "source": "İbn Mace",
+    "category": "hadis"
+  },
+  {
+    "id": 6,
+    "title": "İstiğfar Duası",
+    "text": "Estağfirullahel azîmel lezî lâ ilâhe illâ hüvel hayyel kayyûme ve etûbü ileyh.",
+    "source": "İstiğfar Duası",
+    "category": "dua"
+  },
+  {
+    "id": 7,
+    "title": "Şükür Ayeti",
+    "text": "Eğer şükredecek olursanız, elbette size nimetimi artırırım.",
+    "source": "İbrahim Suresi, 7. Ayet",
+    "category": "ayet"
+  }
+]

@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "name": "Fatiha",
+    "arabicName": "الفاتحة",
+    "verseCount": 7,
+    "verses": [
+      {
+        "id": 1,
+        "arabic": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+        "turkish": "Rahman ve Rahim olan Allah'ın adıyla",
+        "verseNumber": 1
+      },
+      {
+        "id": 2,
+        "arabic": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+        "turkish": "Hamd, âlemlerin Rabbi Allah'a mahsustur",
+        "verseNumber": 2
+      },
+      {
+        "id": 3,
+        "arabic": "الرَّحْمَٰنِ الرَّحِيمِ",
+        "turkish": "O, Rahman'dır, Rahim'dir",
+        "verseNumber": 3
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Bakara",
+    "arabicName": "البقرة",
+    "verseCount": 286,
+    "verses": [
+      {
+        "id": 1,
+        "arabic": "الم",
+        "turkish": "Elif, Lam, Mim",
+        "verseNumber": 1
+      },
+      {
+        "id": 2,
+        "arabic": "ذَٰلِكَ الْكِتَابُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًى لِّلْمُتَّقِينَ",
+        "turkish": "Bu, şüphesiz o kitaptır ki onda hiçbir şüphe yoktur; muttakiler için hidayettir",
+        "verseNumber": 2
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Al-i İmran",
+    "arabicName": "آل عمران",
+    "verseCount": 200,
+    "verses": [
+      {
+        "id": 1,
+        "arabic": "الم",
+        "turkish": "Elif, Lam, Mim",
+        "verseNumber": 1
+      }
+    ]
+  },
+  {
+    "id": 114,
+    "name": "Nas",
+    "arabicName": "الناس",
+    "verseCount": 6,
+    "verses": [
+      {
+        "id": 1,
+        "arabic": "قُلْ أَعُوذُ بِرَبِّ النَّاسِ",
+        "turkish": "De ki: İnsanların Rabbine sığınırım",
+        "verseNumber": 1
+      },
+      {
+        "id": 2,
+        "arabic": "مَلِكِ النَّاسِ",
+        "turkish": "İnsanların Meliki'ne",
+        "verseNumber": 2
+      }
+    ]
+  }
+]
