@@ -11,14 +11,14 @@ export const QiblaPage: React.FC = () => {
   const arrowRef = useRef<HTMLDivElement>(null);
   const { user } = useUserStore();
 
-  const [heading, setHeading] = useState<number>(0);
-  const [qibla, setQibla] = useState<number>(0);
-  const [distance, setDistance] = useState<number>(0);
+  const [heading, setHeading] = useState(0);
+  const [qibla, setQibla] = useState(0);
+  const [distance, setDistance] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [calibration, setCalibration] = useState<number>(0);
+  const [offset, setOffset] = useState(0);
 
   // ------------------------------------------------
-  // 1) KIBLE API
+  // QIBLA API
   // ------------------------------------------------
   const loadQibla = async () => {
     setLoading(true);
@@ -31,68 +31,39 @@ export const QiblaPage: React.FC = () => {
   };
 
   // ------------------------------------------------
-  // 2) DÜZELTİLMİŞ COMPASS SENSÖR VE OK HESAPLAMASI
+  // GÜNCELLENMİŞ DOĞRU COMPASS / ROTASYON ALGORİTMASI
   // ------------------------------------------------
   useEffect(() => {
     const handleOrientation = (event: DeviceOrientationEvent) => {
-      let headingDeg = 0;
+      let rawHeading = 0;
 
-      // iOS için webkitCompassHeading (en güvenilir)
+      // iOS → en doğru yöntem
       if ((event as any).webkitCompassHeading !== undefined) {
-        headingDeg = (event as any).webkitCompassHeading;
-      } 
-      // Android için düzeltilmiş hesaplama
-      else if (event.alpha !== null) {
-        const alpha = event.alpha; // 0-360 derece
-        const beta = event.beta || 0; // -180 to 180
-        const gamma = event.gamma || 0; // -90 to 90
-        
-        // Basit ve güvenilir yöntem - alpha değerini direkt kullan
-        headingDeg = alpha || 0;
-        
-        // Cihazın fiziksel yönelimine göre düzeltme
-        if (Math.abs(beta) > 45 || Math.abs(gamma) > 45) {
-          // Cihaz dik tutuluyorsa, pusula doğru çalışmayabilir
-          console.warn("Cihazı düz tutun for better accuracy");
-        }
+        rawHeading = (event as any).webkitCompassHeading;
+      }
+      else if (event.alpha != null) {
+        // Android → alpha temel alınır
+        rawHeading = event.alpha;
       }
 
-      // 180 derece düzeltmesi - bazı cihazlarda ters çalışıyor
-      let correctedHeading = (360 - headingDeg + calibration) % 360;
-      
-      // Kalibrasyon testi için: eğer kıble 180 derece farklıysa, kalibrasyonu ayarla
-      if (Math.abs((qibla - correctedHeading + 360) % 360 - 180) < 5) {
-        console.log("180 derece hatası tespit edildi, kalibrasyon uygulanıyor");
-        correctedHeading = (correctedHeading + 180) % 360;
-      }
+      // heading düzeltme
+      let corrected = (rawHeading + offset) % 360;
 
-      setHeading(correctedHeading);
+      setHeading(corrected);
 
-      // pusula çarkını döndür
+      // çarkı döndür
       if (wheelRef.current) {
-        wheelRef.current.style.transform = `rotate(${-correctedHeading}deg)`;
+        wheelRef.current.style.transform = `rotate(${-corrected}deg)`;
       }
 
-      // kıble okunu döndür - DÜZELTİLMİŞ HESAP
+      // OK ROTASYONU — doğru formül
       if (arrowRef.current && qibla > 0) {
-        // DÜZELTME: Ok rotasyonu = (Kıble açısı - Pusula açısı)
-        let arrowRotation = (qibla - correctedHeading + 360) % 360;
-        
-        // Arrow'u kıble yönüne çevir
+        let arrowRotation = (qibla - corrected + 360) % 360;
         arrowRef.current.style.transform = `rotate(${arrowRotation}deg)`;
       }
     };
 
-    // Kalibrasyon butonu için
-    const calibrateCompass = () => {
-      setCalibration(prev => (prev + 180) % 360);
-      alert("Pusula 180 derece kalibre edildi. Eğer hala yanlışsa tekrar tıklayın.");
-    };
-
-    // Kalibrasyon butonunu global olarak ekle (test için)
-    (window as any).calibrateCompass = calibrateCompass;
-
-    // iOS izin sistemi
+    // iOS izin
     if (
       typeof DeviceOrientationEvent !== "undefined" &&
       (DeviceOrientationEvent as any).requestPermission
@@ -103,219 +74,189 @@ export const QiblaPage: React.FC = () => {
           if (res === "granted") {
             window.addEventListener("deviceorientation", handleOrientation);
           }
-        })
-        .catch(console.error);
+        });
     } else {
-      // Android ve diğer tarayıcılar
-      if (window.DeviceOrientationEvent) {
-        window.addEventListener("deviceorientation", handleOrientation);
-      } else {
-        console.warn("DeviceOrientationEvent desteklenmiyor");
-      }
+      window.addEventListener("deviceorientation", handleOrientation);
     }
 
-    return () => {
-      window.removeEventListener("deviceorientation", handleOrientation);
-      delete (window as any).calibrateCompass;
-    };
-  }, [qibla, calibration]);
+    return () => window.removeEventListener("deviceorientation", handleOrientation);
+  }, [qibla, offset]);
 
   useEffect(() => {
     loadQibla();
   }, []);
 
-  // Manuel kalibrasyon butonu
-  const handleCalibrate = () => {
-    setCalibration(prev => (prev + 180) % 360);
+  // ------------------------------------------------
+  // 180° OFFFSET DÜZELTMESİ
+  // ------------------------------------------------
+  const applyCalibration = () => {
+    setOffset(prev => (prev + 180) % 360);
   };
 
   // ------------------------------------------------
-  // UI
+  // UI - SCROLL DÜZELTMESİ
   // ------------------------------------------------
   return (
-    <div className="min-h-screen flex flex-col items-center px-5 pt-6 
-        bg-gradient-to-b from-sky-50 via-blue-50 to-orange-50 
-        dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 text-slate-900 dark:text-white">
+    <div className="min-h-screen flex flex-col px-4 pt-4 pb-24 bg-gradient-to-b from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 text-slate-900 dark:text-white">
+      
+      {/* İÇERİK CONTAINER - Scroll edilebilir */}
+      <div className="flex flex-col items-center w-full max-w-sm mx-auto space-y-4">
 
-      {/* Top Ad */}
-      {!user?.isPremium && (
-        <div className="w-full max-w-sm mb-4">
-          <AdPlaceholder 
-            type="banner" 
-            className="w-full border border-blue-200 dark:border-blue-900 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md" 
-          />
-        </div>
-      )}
-
-      <h1 className="text-2xl font-bold mb-4 text-orange-600 dark:text-orange-300">
-        Kıble Pusulası 🕌
-      </h1>
-
-      <Card className="w-full max-w-sm bg-white/70 dark:bg-slate-900/60 
-          backdrop-blur-xl border border-slate-200 dark:border-slate-700 
-          rounded-3xl shadow-xl">
-        <CardContent className="p-6">
-          
-          {/* ---------- COMPASS AREA ---------- */}
-          <div className="relative w-72 h-72 mx-auto">
-
-            {/* ÇARK */}
-            <div
-              ref={wheelRef}
-              className="absolute inset-0 rounded-full border-[8px] border-sky-300 
-              shadow-[inset_0_0_40px_#00000030] bg-gradient-to-br 
-              from-sky-100/70 to-blue-100/70 dark:from-slate-800 dark:to-slate-900"
-              style={{ transition: "transform 0.15s linear" }}
+        {/* ÜST REKLAM */}
+        {!user?.isPremium && (
+          <div className="w-full">
+            <AdPlaceholder 
+              type="banner" 
+              className="w-full border border-blue-200 dark:border-blue-900 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md" 
             />
+          </div>
+        )}
 
-            {/* Derece çizgileri */}
-            {[...Array(24)].map((_, i) => {
-              const degree = i * 15;
-              return (
-                <div
-                  key={degree}
-                  className="absolute left-1/2 top-1/2 w-[2px] h-4 
-                  bg-orange-400 origin-bottom opacity-90"
-                  style={{
-                    transform: `rotate(${degree}deg) translateY(-138px)`,
-                  }}
-                />
-              );
-            })}
+        <h1 className="text-xl font-bold text-orange-600 dark:text-orange-300">
+          Kıble Pusulası 🕌
+        </h1>
 
-            {/* Yön işaretleri */}
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 text-orange-600 dark:text-orange-300 font-bold">
-              N
-            </div>
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-orange-600 dark:text-orange-300 font-bold">
-              S
-            </div>
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-600 dark:text-orange-300 font-bold">
-              W
-            </div>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-600 dark:text-orange-300 font-bold">
-              E
-            </div>
-
-            {/* Kaabe PNG (merkezde sabit) */}
-            <img
-              src={KaabaImage}
-              alt="Kaaba"
-              className="absolute left-1/2 top-1/2 w-10 h-10 -translate-x-1/2 -translate-y-1/2 
-              drop-shadow-[0_0_8px_rgba(0,0,0,0.5)] z-10"
-            />
-
-            {/* Kıble oku - DÜZELTİLMİŞ STİL */}
-            <div
-              ref={arrowRef}
-              className="absolute left-1/2 top-1/2 origin-center 
-              -translate-x-1/2 -translate-y-1/2 h-32 transition-transform duration-100 z-20"
-              style={{ transformOrigin: 'center center' }}
-            >
-              <Navigation 
-                className="h-16 w-16 text-red-600 dark:text-red-400 drop-shadow-xl" 
-                strokeWidth={1.5} 
-                style={{ transform: 'rotate(0deg)' }} // Başlangıç pozisyonu
+        {/* ANA COMPASS KARTI */}
+        <Card className="w-full bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl">
+          <CardContent className="p-4">
+            <div className="relative w-64 h-64 mx-auto">
+              {/* wheel */}
+              <div
+                ref={wheelRef}
+                className="absolute inset-0 rounded-full border-[6px] border-sky-300 shadow-[inset_0_0_30px_#00000030] bg-gradient-to-br from-sky-100/70 to-blue-100/70 dark:from-slate-800 dark:to-slate-900"
+                style={{ transition: "transform 0.15s linear" }}
               />
+
+              {/* çizgiler */}
+              {[...Array(24)].map((_, i) => {
+                const degree = i * 15;
+                return (
+                  <div
+                    key={degree}
+                    className="absolute left-1/2 top-1/2 w-[1.5px] h-3 bg-orange-400 origin-bottom opacity-90"
+                    style={{ transform: `rotate(${degree}deg) translateY(-122px)` }}
+                  />
+                );
+              })}
+
+              {/* yönler */}
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 text-orange-600 dark:text-orange-300 font-bold text-sm">N</div>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-orange-600 dark:text-orange-300 font-bold text-sm">S</div>
+              <div className="absolute left-2 top-1/2 -translate-y-1/2 text-orange-600 dark:text-orange-300 font-bold text-sm">W</div>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 text-orange-600 dark:text-orange-300 font-bold text-sm">E</div>
+
+              {/* Kaabe */}
+              <img
+                src={KaabaImage}
+                alt="Kaaba"
+                className="absolute left-1/2 top-1/2 w-9 h-9 -translate-x-1/2 -translate-y-1/2 z-10"
+              />
+
+              {/* OK */}
+              <div
+                ref={arrowRef}
+                className="absolute left-1/2 top-1/2 origin-center -translate-x-1/2 -translate-y-1/2 h-28 transition-transform duration-100 z-20"
+              >
+                <Navigation 
+                  className="h-14 w-14 text-red-600 dark:text-red-400 drop-shadow-xl" 
+                  strokeWidth={1.5}
+                />
+              </div>
             </div>
+
+            {/* TEXT */}
+            <div className="mt-4 text-center space-y-2">
+              {loading ? (
+                <p className="flex items-center justify-center gap-2 text-gray-400 dark:text-gray-300 text-sm">
+                  <RefreshCw className="animate-spin h-3 w-3" />
+                  Konum alınıyor...
+                </p>
+              ) : (
+                <>
+                  <p className="text-lg font-semibold text-orange-600 dark:text-orange-300">
+                    Kıble: {Math.round(qibla)}°
+                  </p>
+                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                    Uzaklık: {distance.toLocaleString()} km
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Pusula: {Math.round(heading)}° | Düzeltme: {offset}°
+                  </p>
+                  <p className="text-xs text-blue-500 dark:text-blue-300">
+                    Ok: {Math.round((qibla - heading + 360) % 360)}°
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* BUTTONS */}
+            <div className="mt-3 flex flex-col gap-1.5">
+              <button
+                onClick={applyCalibration}
+                className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-medium hover:bg-orange-600"
+              >
+                180° Kalibrasyon
+              </button>
+              
+              <button
+                onClick={loadQibla}
+                disabled={loading}
+                className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+                Konumu Yenile
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ORTA REKLAM */}
+        {!user?.isPremium && (
+          <div className="w-full">
+            <AdPlaceholder 
+              type="banner" 
+              className="w-full border border-blue-200 dark:border-blue-900 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md" 
+            />
           </div>
+        )}
 
-          {/* Text area */}
-          <div className="mt-6 text-center space-y-3">
-            {loading ? (
-              <p className="flex items-center justify-center gap-2 text-gray-400 dark:text-gray-300">
-                <RefreshCw className="animate-spin h-4 w-4" />
-                Konum alınıyor...
-              </p>
-            ) : (
-              <>
-                <p className="text-xl font-semibold text-orange-600 dark:text-orange-300">
-                  Kıble Yönü: {Math.round(qibla)}°
-                </p>
-                <p className="text-sm text-slate-700 dark:text-slate-300">
-                  Kâbe uzaklığı: {distance.toLocaleString()} km
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Pusula: {Math.round(heading)}° | Kalibrasyon: {calibration}°
-                </p>
-                {/* DEBUG: Ok rotasyon bilgisi */}
-                <p className="text-xs text-blue-500 dark:text-blue-300">
-                  Ok Rotasyon: {Math.round((qibla - heading + 360) % 360)}°
-                </p>
-              </>
-            )}
+        {/* BİLGİ KARTI */}
+        <Card className="w-full bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl">
+          <CardContent className="p-3">
+            <h3 className="font-semibold mb-2 text-slate-900 dark:text-white text-sm">
+              Kullanım Talimatları
+            </h3>
+            <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
+              <li className="flex items-start">
+                <span className="text-green-600 mr-1">•</span>
+                Cihazınızı düz tutun
+              </li>
+              <li className="flex items-start">
+                <span className="text-green-600 mr-1">•</span>
+                Konum izni verin
+              </li>
+              <li className="flex items-start">
+                <span className="text-green-600 mr-1">•</span>
+                Kırmızı ok Kıble'yi gösterir
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* ALT REKLAM - MENÜ BARINDAN YUKARIDA */}
+        {!user?.isPremium && (
+          <div className="w-full mb-6"> {/* mb-6 ile menü barından boşluk bıraktık */}
+            <AdPlaceholder 
+              type="banner" 
+              className="w-full border border-blue-200 dark:border-blue-900 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md" 
+            />
           </div>
+        )}
 
-          {/* Kontroller */}
-          <div className="mt-4 flex flex-col gap-2">
-            <button
-              onClick={handleCalibrate}
-              className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
-            >
-              180° Kalibrasyon Uygula
-            </button>
-            
-            <button
-              onClick={loadQibla}
-              disabled={loading}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Konumu Yenile
-            </button>
-          </div>
+      </div>
 
-        </CardContent>
-      </Card>
-
-      {/* Middle Ad */}
-      {!user?.isPremium && (
-        <div className="w-full max-w-sm mt-6">
-          <AdPlaceholder 
-            type="banner" 
-            className="w-full border border-blue-200 dark:border-blue-900 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md" 
-          />
-        </div>
-      )}
-
-      {/* Instructions Card */}
-      <Card className="w-full max-w-sm mt-6 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl">
-        <CardContent className="p-4">
-          <h3 className="font-semibold mb-3 text-slate-900 dark:text-white">
-            Kullanım Talimatları
-          </h3>
-          <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-2">
-            <li className="flex items-start">
-              <span className="text-green-600 mr-2">•</span>
-              Cihazınızı düz bir yüzeye yerleştirin
-            </li>
-            <li className="flex items-start">
-              <span className="text-green-600 mr-2">•</span>
-              Konum izni verin
-            </li>
-            <li className="flex items-start">
-              <span className="text-green-600 mr-2">•</span>
-              Kırmızı ok Kıble yönünü gösterir
-            </li>
-            <li className="flex items-start">
-              <span className="text-green-600 mr-2">•</span>
-              Kalibrasyon için cihazınızı 8 şeklinde hareket ettirin
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
-
-      {/* Bottom Ad */}
-      {!user?.isPremium && (
-        <div className="w-full max-w-sm mt-6 mb-20">
-          <AdPlaceholder 
-            type="banner" 
-            className="w-full border border-blue-200 dark:border-blue-900 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md" 
-          />
-        </div>
-      )}
-
-      <div className="h-4"></div>
+      {/* MENÜ BARI İÇİN BOTTOM PADDING */}
+      <div className="h-16"></div> {/* Menü barı yüksekliği kadar boşluk */}
     </div>
   );
 };
