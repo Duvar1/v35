@@ -82,7 +82,7 @@ export const PrayerTimesPage: React.FC = () => {
   const nextPrayer = getNextPrayer();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900 no-horizontal-scroll">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-gradient-to-r from-pink-100/90 via-orange-100/90 to-blue-100/90 dark:from-purple-900/90 dark:via-blue-900/90 dark:to-cyan-900/90 backdrop-blur-md border-b border-pink-200/50 dark:border-purple-500/30">
         <div className="p-4">
@@ -115,37 +115,40 @@ export const PrayerTimesPage: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="pb-20 px-4 space-y-6 pt-6">
+      <div className="pb-20 px-4 space-y-6 pt-6 w-full max-w-full overflow-x-hidden">
         {/* Top Ad */}
         {!user?.isPremium && (
-          <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+          <div className="w-full">
+            <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
+          </div>
         )}
 
         {/* Prayer Times */}
-        <div className="space-y-1">
+        <div className="space-y-1 w-full">
           {loading ? (
             // Loading skeleton
             [...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-gradient-to-r from-pink-200/60 via-orange-200/60 to-blue-200/60 dark:from-purple-800/40 dark:via-blue-800/40 dark:to-cyan-800/40 h-20 rounded-xl mb-3"></div>
+              <div key={i} className="animate-pulse bg-gradient-to-r from-pink-200/60 via-orange-200/60 to-blue-200/60 dark:from-purple-800/40 dark:via-blue-800/40 dark:to-cyan-800/40 h-20 rounded-xl mb-3 w-full"></div>
             ))
           ) : (
             prayerTimes?.prayers.map((prayer) => (
-              <PrayerTimeCard
-                key={prayer.name}
-                name={prayer.name}
-                time={prayer.time}
-                isNext={prayer.name === nextPrayer}
-                enabled={reminderSettings[prayer.name]?.enabled || false}
-                onToggle={() => handleToggleReminder(prayer.name)}
-                reminderTime={reminderSettings[prayer.name]?.reminderTime || '10'}
-                onReminderChange={(time) => handleReminderTimeChange(prayer.name, time)}
-              />
+              <div key={prayer.name} className="w-full">
+                <PrayerTimeCard
+                  name={prayer.name}
+                  time={prayer.time}
+                  isNext={prayer.name === nextPrayer}
+                  enabled={reminderSettings[prayer.name]?.enabled || false}
+                  onToggle={() => handleToggleReminder(prayer.name)}
+                  reminderTime={reminderSettings[prayer.name]?.reminderTime || '10'}
+                  onReminderChange={(time) => handleReminderTimeChange(prayer.name, time)}
+                />
+              </div>
             ))
           )}
         </div>
 
         {/* Global Settings */}
-        <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 backdrop-blur-sm border-pink-200/50 dark:border-purple-500/30">
+        <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 backdrop-blur-sm border-pink-200/50 dark:border-purple-500/30 w-full">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
               <Bell className="h-5 w-5 text-orange-600 dark:text-amber-400" />
@@ -153,8 +156,8 @@ export const PrayerTimesPage: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex-1">
                 <h3 className="font-medium text-pink-800 dark:text-purple-200">Tüm Hatırlatmaları Aç</h3>
                 <p className="text-sm text-blue-600 dark:text-cyan-400">
                   Bütün namaz vakitleri için hatırlatma aktif et
@@ -172,8 +175,8 @@ export const PrayerTimesPage: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex-1">
                 <h3 className="font-medium text-pink-800 dark:text-purple-200">Sesli Bildirim</h3>
                 <p className="text-sm text-blue-600 dark:text-cyan-400">
                   Hatırlatmalarda ses çal
@@ -189,7 +192,9 @@ export const PrayerTimesPage: React.FC = () => {
 
         {/* Bottom Ad */}
         {!user?.isPremium && (
-          <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+          <div className="w-full">
+            <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
+          </div>
         )}
 
         {/* Bottom Spacing */}

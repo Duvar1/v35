@@ -192,15 +192,15 @@ export const SettingsPage: React.FC = () => {
   const isDiyanetLocked = true;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-sky-100 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-sky-100 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 no-horizontal-scroll">
       {/* HEADER */}
       <div className="sticky top-0 z-20 border-b border-sky-200/70 dark:border-slate-800/80 bg-sky-50/80 dark:bg-slate-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-full items-center justify-between px-4 py-3 w-full">
+          <div className="flex items-center gap-3 w-full">
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 text-white shadow-sm">
               <Settings className="h-5 w-5" />
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                 Ayarlar
               </h1>
@@ -213,9 +213,9 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* CONTENT */}
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-28 pt-6">
+      <div className="mx-auto flex max-w-full flex-col gap-6 px-4 pb-28 pt-6 w-full overflow-x-hidden">
         {/* KONUM AYARLARI */}
-        <Card className="overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80">
+        <Card className="overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 w-full">
           <CardHeader className="border-b border-sky-100/80 pb-3 dark:border-slate-800/80">
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-50">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
@@ -228,9 +228,9 @@ export const SettingsPage: React.FC = () => {
             </p>
           </CardHeader>
 
-          <CardContent className="space-y-5 pt-4">
+          <CardContent className="space-y-5 pt-4 w-full">
             {/* SADECE ŞEHİR SEÇİMİ */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 w-full">
               <label className="text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
                 Şehir
               </label>
@@ -244,9 +244,9 @@ export const SettingsPage: React.FC = () => {
                 <SelectTrigger className="h-11 w-full rounded-xl border border-sky-200/80 bg-sky-100/80 px-3 text-sm text-slate-800 shadow-sm hover:bg-sky-100 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-50 dark:hover:bg-slate-800/80">
                   <SelectValue placeholder="Şehir seçin" />
                 </SelectTrigger>
-                <SelectContent className="max-h-64 rounded-xl border border-sky-200/80 bg-sky-50/95 text-sm shadow-lg dark:border-slate-700/80 dark:bg-slate-900/95">
+                <SelectContent className="max-h-64 rounded-xl border border-sky-200/80 bg-sky-50/95 text-sm shadow-lg dark:border-slate-700/80 dark:bg-slate-900/95 w-full">
                   {cities.map((c) => (
-                    <SelectItem key={c} value={c}>
+                    <SelectItem key={c} value={c} className="w-full">
                       {c}
                     </SelectItem>
                   ))}
@@ -255,8 +255,8 @@ export const SettingsPage: React.FC = () => {
             </div>
 
             {/* KONUMU OTOMATİK BUL */}
-            <div className="flex flex-col gap-3 rounded-2xl bg-sky-100/90 p-3.5 text-xs text-sky-800 dark:bg-sky-500/10 dark:text-sky-200 md:flex-row md:items-center md:justify-between">
-              <div>
+            <div className="flex flex-col gap-3 rounded-2xl bg-sky-100/90 p-3.5 text-xs text-sky-800 dark:bg-sky-500/10 dark:text-sky-200 md:flex-row md:items-center md:justify-between w-full">
+              <div className="flex-1">
                 <p className="font-medium">
                   Konumdan otomatik seç{" "}
                   <span className="text-[10px] font-normal text-sky-600/80 dark:text-sky-300/80">
@@ -295,9 +295,9 @@ export const SettingsPage: React.FC = () => {
             <Separator />
 
             {/* HESAPLAMA YÖNTEMİ - KİLİTLİ */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div>
+            <div className="space-y-2 w-full">
+              <div className="flex items-center justify-between gap-2 w-full">
+                <div className="flex-1">
                   <label className="text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
                     Hesaplama yöntemi
                   </label>
@@ -314,7 +314,7 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               {/* Kilitli Select Box */}
-              <div className="relative">
+              <div className="relative w-full">
                 <Select
                   value={method}
                   onValueChange={(value) => {
@@ -329,12 +329,12 @@ export const SettingsPage: React.FC = () => {
                   }`}>
                     <SelectValue placeholder="Hesaplama yöntemi seçin" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-64 rounded-xl border border-sky-200/80 bg-sky-50/95 text-sm shadow-lg dark:border-slate-700/80 dark:bg-slate-900/95">
+                  <SelectContent className="max-h-64 rounded-xl border border-sky-200/80 bg-sky-50/95 text-sm shadow-lg dark:border-slate-700/80 dark:bg-slate-900/95 w-full">
                     {calculationMethods.map((m) => (
                       <SelectItem 
                         key={m.value} 
                         value={m.value}
-                        className={m.value === "diyanet" ? "bg-sky-100 dark:bg-sky-900/50 font-semibold" : ""}
+                        className={`w-full ${m.value === "diyanet" ? "bg-sky-100 dark:bg-sky-900/50 font-semibold" : ""}`}
                       >
                         <div className="flex items-center justify-between w-full">
                           <span>{m.label}</span>
@@ -349,7 +349,7 @@ export const SettingsPage: React.FC = () => {
                 
                 {/* Kilitli olduğunu gösteren overlay */}
                 {isDiyanetLocked && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-[1px]">
+                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-[1px] w-full">
                     <div className="flex items-center gap-2 bg-sky-100 dark:bg-sky-900/80 px-3 py-1.5 rounded-lg border border-sky-200 dark:border-sky-700">
                       <Lock className="h-3 w-3 text-sky-600 dark:text-sky-400" />
                       <span className="text-xs font-medium text-sky-700 dark:text-sky-300">
@@ -362,9 +362,9 @@ export const SettingsPage: React.FC = () => {
 
               {/* Açıklama metni */}
               {isDiyanetLocked && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-700">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-700 w-full">
                   <Info className="h-4 w-4 text-sky-600 dark:text-sky-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-sky-700 dark:text-sky-300">
+                  <div className="text-xs text-sky-700 dark:text-sky-300 flex-1">
                     <p className="font-medium">Türkiye için optimize edilmiştir</p>
                     <p className="mt-1">Namaz vakitleri Diyanet İşleri Başkanlığı'nın resmi hesaplama yöntemine göre belirlenmektedir. Bu ayar değiştirilemez.</p>
                   </div>
@@ -374,10 +374,8 @@ export const SettingsPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Diğer kartlar aynı kalıyor... */}
-
         {/* TEMA AYARLARI */}
-        <Card className="overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80">
+        <Card className="overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 w-full">
           <CardHeader className="border-b border-sky-100/80 pb-3 dark:border-slate-800/80">
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-50">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/15 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300">
@@ -394,8 +392,8 @@ export const SettingsPage: React.FC = () => {
             </p>
           </CardHeader>
 
-          <CardContent className="space-y-5 pt-4">
-            <div className="space-y-2">
+          <CardContent className="space-y-5 pt-4 w-full">
+            <div className="space-y-2 w-full">
               <label className="text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
                 Tema Seçimi
               </label>
@@ -406,16 +404,16 @@ export const SettingsPage: React.FC = () => {
                 <SelectTrigger className="h-11 w-full rounded-xl border border-sky-200/80 bg-sky-100/80 px-3 text-sm text-slate-800 shadow-sm hover:bg-sky-100 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-50 dark:hover:bg-slate-800/80">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border border-sky-200/80 bg-sky-50/95 text-sm shadow-lg dark:border-slate-700/80 dark:bg-slate-900/95">
-                  <SelectItem value="light">🌞 Açık Tema</SelectItem>
-                  <SelectItem value="dark">🌙 Koyu Tema</SelectItem>
-                  <SelectItem value="system">📱 Sistem Ayarı</SelectItem>
+                <SelectContent className="rounded-xl border border-sky-200/80 bg-sky-50/95 text-sm shadow-lg dark:border-slate-700/80 dark:bg-slate-900/95 w-full">
+                  <SelectItem value="light" className="w-full">🌞 Açık Tema</SelectItem>
+                  <SelectItem value="dark" className="w-full">🌙 Koyu Tema</SelectItem>
+                  <SelectItem value="system" className="w-full">📱 Sistem Ayarı</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex-1">
                 <h3 className="text-sm font-medium text-slate-800 dark:text-slate-200">Koyu Tema</h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
                   Gece kullanımı için göz dostu tema
@@ -430,7 +428,7 @@ export const SettingsPage: React.FC = () => {
         </Card>
 
         {/* BİLDİRİM AYARLARI */}
-        <Card className="overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80">
+        <Card className="overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 w-full">
           <CardHeader className="border-b border-sky-100/80 pb-3 dark:border-slate-800/80">
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-50">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/15 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
@@ -443,9 +441,9 @@ export const SettingsPage: React.FC = () => {
             </p>
           </CardHeader>
 
-          <CardContent className="space-y-4 pt-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
+          <CardContent className="space-y-4 pt-4 w-full">
+            <div className="flex items-center justify-between w-full">
+              <div className="space-y-1 flex-1">
                 <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                   Namaz Vakti Bildirimleri
                 </p>
@@ -458,8 +456,8 @@ export const SettingsPage: React.FC = () => {
 
             <Separator />
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
+            <div className="flex items-center justify-between w-full">
+              <div className="space-y-1 flex-1">
                 <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                   Ses Bildirimleri
                 </p>
@@ -473,7 +471,7 @@ export const SettingsPage: React.FC = () => {
         </Card>
 
         {/* UYGULAMA BİLGİLERİ */}
-        <Card className="rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80">
+        <Card className="rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 w-full">
           <CardHeader className="border-b border-sky-100/80 pb-3 dark:border-slate-800/80">
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-50">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-400/20 text-sky-700 dark:bg-sky-400/25 dark:text-sky-300">
@@ -483,37 +481,37 @@ export const SettingsPage: React.FC = () => {
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="space-y-3 pt-4 text-sm">
-            <div className="flex items-center justify-between">
+          <CardContent className="space-y-3 pt-4 text-sm w-full">
+            <div className="flex items-center justify-between w-full">
               <span className="text-slate-600 dark:text-slate-400">Sürüm</span>
               <span className="font-medium text-sky-800 dark:text-sky-300">1.0.0</span>
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               <span className="text-slate-600 dark:text-slate-400">Geliştirici</span>
               <span className="font-medium text-sky-800 dark:text-sky-300">MGX Team</span>
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               <span className="text-slate-600 dark:text-slate-400">Son Güncelleme</span>
               <span className="font-medium text-sky-800 dark:text-sky-300">13 Kasım 2024</span>
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               <span className="text-slate-600 dark:text-slate-400">Seçili konum</span>
               <span className="font-medium text-sky-800 dark:text-sky-300 text-right max-w-[150px] truncate">
                 {getLocationDisplay()}
               </span>
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               <span className="text-slate-600 dark:text-slate-400">Hesaplama Yöntemi</span>
               <span className="font-medium text-sky-800 dark:text-sky-300 text-right max-w-[150px] truncate">
                 {calculationMethods.find(m => m.value === method)?.label || method}
               </span>
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               <span className="text-slate-600 dark:text-slate-400">Aktif Tema</span>
               <span className="font-medium text-purple-600 dark:text-purple-300">
                 {theme === 'light' ? '🌞 Açık' : theme === 'dark' ? '🌙 Koyu' : '📱 Sistem'}
@@ -523,7 +521,7 @@ export const SettingsPage: React.FC = () => {
         </Card>
 
         {/* ACTION BUTTONS */}
-        <div className="space-y-3">
+        <div className="space-y-3 w-full">
           <Button
             variant="outline"
             className="w-full rounded-full border-rose-200 bg-rose-100/80 text-sm font-medium text-rose-700 shadow-sm hover:bg-rose-200/80 dark:border-rose-500/50 dark:bg-rose-950/40 dark:text-rose-200 dark:hover:bg-rose-900/60"

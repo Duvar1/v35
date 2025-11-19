@@ -199,7 +199,7 @@ export const QuranPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 flex flex-col items-center justify-center p-4 no-horizontal-scroll">
         <Loader2 className="h-10 w-10 text-orange-500 animate-spin" />
         <p className="mt-4 text-gray-700 dark:text-gray-300">Sure listesi yükleniyor...</p>
       </div>
@@ -209,7 +209,7 @@ export const QuranPage: React.FC = () => {
   if (surahDetailLoading) {
     const surahName = quranMeta.find(s => s.id === selectedSurah?.id)?.name || "Sure";
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 flex flex-col items-center justify-center p-4 no-horizontal-scroll">
         <Loader2 className="h-10 w-10 text-pink-500 animate-spin" />
         <p className="mt-4 text-gray-700 dark:text-gray-300">"{surahName}" ayetleri yükleniyor...</p>
       </div>
@@ -219,7 +219,7 @@ export const QuranPage: React.FC = () => {
   // --- Sure Okuma Görünümü ---
   if (selectedSurah) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 p-4 space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 p-4 space-y-6 no-horizontal-scroll">
         <div className="flex items-center justify-between sticky top-0 bg-sky-50/90 dark:bg-slate-900/90 py-2 backdrop-blur-sm z-10">
           <Button 
             onClick={() => setSelectedSurah(null)}
@@ -239,15 +239,15 @@ export const QuranPage: React.FC = () => {
           <div className="w-16"></div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 w-full max-w-full overflow-x-hidden">
           {selectedSurah.verses.map((verse) => (
             <Card 
               key={verse.id} 
               id={`verse-${verse.id}`}
-              className="border-l-4 border-l-pink-400 bg-gradient-to-r from-sky-100/80 to-orange-100/80 dark:from-slate-800/80 dark:to-orange-900/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all"
+              className="border-l-4 border-l-pink-400 bg-gradient-to-r from-sky-100/80 to-orange-100/80 dark:from-slate-800/80 dark:to-orange-900/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all w-full"
             >
               <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-3 w-full">
                   <Badge 
                     variant="outline" 
                     className="text-xs bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300 border-pink-300 dark:border-pink-700"
@@ -268,11 +268,11 @@ export const QuranPage: React.FC = () => {
                   </Button>
                 </div>
                 
-                <div className="space-y-3">
-                  <p className="text-right text-2xl leading-relaxed font-arabic text-slate-800 dark:text-slate-50">
+                <div className="space-y-3 w-full">
+                  <p className="text-right text-2xl leading-relaxed font-arabic text-slate-800 dark:text-slate-50 w-full">
                     {verse.arabic}
                   </p>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed w-full">
                     {verse.turkish}
                   </p>
                 </div>
@@ -287,8 +287,8 @@ export const QuranPage: React.FC = () => {
   // --- Yer İmleri Görünümü ---
   if (showBookmarks) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 p-4 space-y-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 p-4 space-y-6 no-horizontal-scroll">
+        <div className="flex items-center justify-between mb-4 w-full">
           <Button 
             onClick={() => setShowBookmarks(false)}
             variant="outline"
@@ -302,9 +302,9 @@ export const QuranPage: React.FC = () => {
           <div className="w-16"></div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 w-full max-w-full overflow-x-hidden">
           {bookmarkedVerses.length === 0 ? (
-            <Card className="bg-gradient-to-r from-sky-100/80 to-pink-100/80 dark:from-slate-800/80 dark:to-pink-900/80 backdrop-blur-sm">
+            <Card className="bg-gradient-to-r from-sky-100/80 to-pink-100/80 dark:from-slate-800/80 dark:to-pink-900/80 backdrop-blur-sm w-full">
               <CardContent className="p-8 text-center">
                 <Bookmark className="h-8 w-8 text-pink-500 mx-auto mb-3" />
                 <p className="text-slate-600 dark:text-slate-400">
@@ -316,12 +316,12 @@ export const QuranPage: React.FC = () => {
             bookmarkedVerses.map((bookmark) => (
               <Card 
                 key={`${bookmark.surahId}-${bookmark.verseId}`} 
-                className="cursor-pointer hover:shadow-xl transition-all bg-gradient-to-r from-orange-100/80 to-pink-100/80 dark:from-orange-900/80 dark:to-pink-900/80 backdrop-blur-sm border-l-4 border-l-orange-400 hover:border-l-pink-400"
+                className="cursor-pointer hover:shadow-xl transition-all bg-gradient-to-r from-orange-100/80 to-pink-100/80 dark:from-orange-900/80 dark:to-pink-900/80 backdrop-blur-sm border-l-4 border-l-orange-400 hover:border-l-pink-400 w-full"
                 onClick={() => handleBookmarkClick(bookmark)}
               >
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex-1">
                       <h3 className="font-semibold text-lg text-orange-700 dark:text-orange-300">
                         {bookmark.surahName} - {bookmark.verseNumber}. Ayet
                       </h3>
@@ -343,16 +343,16 @@ export const QuranPage: React.FC = () => {
                   </div>
                   
                   {/* Ayet içeriği gösterimi */}
-                  <div className="space-y-2">
-                    <p className="text-right text-lg leading-relaxed font-arabic text-slate-800 dark:text-slate-200">
+                  <div className="space-y-2 w-full">
+                    <p className="text-right text-lg leading-relaxed font-arabic text-slate-800 dark:text-slate-200 w-full">
                       {bookmark.arabicText}
                     </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 w-full">
                       {bookmark.turkishText}
                     </p>
                   </div>
                   
-                  <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 w-full">
                     <span>📍 Tıklayarak ayete git</span>
                     <span>Sure: {bookmark.surahId}</span>
                   </div>
@@ -372,9 +372,9 @@ export const QuranPage: React.FC = () => {
   );
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 p-4 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-orange-50 dark:from-slate-900 dark:via-blue-950 dark:to-orange-950 p-4 space-y-6 no-horizontal-scroll">
       {/* Header */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-2 w-full">
         <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
           Kur'an-ı Kerim 📖
         </h1>
@@ -384,24 +384,24 @@ export const QuranPage: React.FC = () => {
       </div>
 
       {/* Search */}
-      <div className="relative">
+      <div className="relative w-full">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-400 dark:text-orange-500 h-4 w-4" />
         <Input
           placeholder="Sure ara..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-sky-100/80 dark:bg-slate-800/80 backdrop-blur-sm border-orange-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 focus:border-orange-500 dark:focus:border-orange-500"
+          className="pl-10 bg-sky-100/80 dark:bg-slate-800/80 backdrop-blur-sm border-orange-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 focus:border-orange-500 dark:focus:border-orange-500 w-full"
         />
       </div>
 
       {/* Bookmarked Verses Button/Info */}
       {bookmarkedVerses.length > 0 && (
         <Card 
-          className="cursor-pointer bg-gradient-to-r from-pink-100/80 to-orange-100/80 dark:from-pink-900/80 dark:to-orange-900/80 backdrop-blur-sm border-pink-300 dark:border-pink-700 hover:shadow-lg transition-all"
+          className="cursor-pointer bg-gradient-to-r from-pink-100/80 to-orange-100/80 dark:from-pink-900/80 dark:to-orange-900/80 backdrop-blur-sm border-pink-300 dark:border-pink-700 hover:shadow-lg transition-all w-full"
           onClick={() => setShowBookmarks(true)}
         >
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               <div className="flex items-center space-x-3">
                 <Bookmark className="h-5 w-5 text-pink-600 dark:text-pink-400" />
                 <span className="text-base font-medium text-pink-700 dark:text-pink-300">
@@ -417,22 +417,22 @@ export const QuranPage: React.FC = () => {
       )}
 
       {/* Surah List */}
-      <div className="space-y-3">
+      <div className="space-y-3 w-full max-w-full overflow-x-hidden">
         {filteredSurahs.map((surah) => (
           <Card 
             key={surah.id} 
-            className="cursor-pointer hover:shadow-lg transition-all bg-gradient-to-r from-sky-100/80 to-blue-100/80 dark:from-sky-900/80 dark:to-blue-900/80 backdrop-blur-sm hover:from-sky-200/80 hover:to-blue-200/80 dark:hover:from-sky-800/80 dark:hover:to-blue-800/80"
+            className="cursor-pointer hover:shadow-lg transition-all bg-gradient-to-r from-sky-100/80 to-blue-100/80 dark:from-sky-900/80 dark:to-blue-900/80 backdrop-blur-sm hover:from-sky-200/80 hover:to-blue-200/80 dark:hover:from-sky-800/80 dark:hover:to-blue-800/80 w-full"
             onClick={() => handleSurahClick(surah)}
           >
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between w-full">
                 <div className="flex items-center space-x-4">
                   <div className="w-10 h-10 bg-gradient-to-br from-orange-200 to-pink-200 dark:from-orange-800 dark:to-pink-800 rounded-full flex items-center justify-center shadow-md">
                     <span className="text-sm font-bold text-orange-700 dark:text-orange-300">
                       {surah.id}
                     </span>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">
                       {surah.name}
                     </h3>
@@ -458,7 +458,7 @@ export const QuranPage: React.FC = () => {
       </div>
 
       {filteredSurahs.length === 0 && (
-        <Card className="bg-gradient-to-r from-sky-100/80 to-orange-100/80 dark:from-sky-900/80 dark:to-orange-900/80 backdrop-blur-sm">
+        <Card className="bg-gradient-to-r from-sky-100/80 to-orange-100/80 dark:from-sky-900/80 dark:to-orange-900/80 backdrop-blur-sm w-full">
           <CardContent className="p-8 text-center">
             <p className="text-slate-500 dark:text-slate-400">
               Aradığınız sure bulunamadı

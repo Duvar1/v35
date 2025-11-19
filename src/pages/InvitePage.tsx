@@ -76,9 +76,9 @@ export const InvitePage: React.FC = () => {
   const referralEarnings = user?.referralEarnings || 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 space-y-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 space-y-6 no-horizontal-scroll">
       {/* Header */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-2 w-full">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           Arkadaşlarını Davet Et
         </h1>
@@ -89,13 +89,15 @@ export const InvitePage: React.FC = () => {
 
       {/* Top Ad */}
       {!user?.isPremium && (
-        <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+        <div className="w-full">
+          <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
+        </div>
       )}
 
       {/* Referral Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="text-center">
-          <CardContent className="p-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+        <Card className="text-center w-full">
+          <CardContent className="p-4 w-full">
             <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {referralCount}
@@ -106,8 +108,8 @@ export const InvitePage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="text-center">
-          <CardContent className="p-4">
+        <Card className="text-center w-full">
+          <CardContent className="p-4 w-full">
             <Coins className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {referralEarnings}₺
@@ -118,8 +120,8 @@ export const InvitePage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="text-center">
-          <CardContent className="p-4">
+        <Card className="text-center w-full">
+          <CardContent className="p-4 w-full">
             <Gift className="h-8 w-8 text-green-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               5₺
@@ -132,19 +134,19 @@ export const InvitePage: React.FC = () => {
       </div>
 
       {/* Referral Code */}
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Share2 className="h-5 w-5" />
             <span>Referans Kodun</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
+        <CardContent className="space-y-4 w-full">
+          <div className="flex items-center space-x-2 w-full">
             <Input
               value={user?.referralCode || ''}
               readOnly
-              className="font-mono text-lg text-center"
+              className="font-mono text-lg text-center flex-1"
             />
             <Button
               onClick={() => copyToClipboard(user?.referralCode || '', 'code')}
@@ -156,7 +158,7 @@ export const InvitePage: React.FC = () => {
             </Button>
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
+          <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg w-full">
             <p className="text-sm text-blue-700 dark:text-blue-300">
               💡 Arkadaşların bu kodu kayıt olurken girdiğinde, sen 5₺ ödül kazanırsın!
             </p>
@@ -165,16 +167,16 @@ export const InvitePage: React.FC = () => {
       </Card>
 
       {/* Referral Link */}
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Davet Linki</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
+        <CardContent className="space-y-4 w-full">
+          <div className="flex items-center space-x-2 w-full">
             <Input
               value={referralLink}
               readOnly
-              className="text-sm"
+              className="text-sm flex-1"
             />
             <Button
               onClick={() => copyToClipboard(referralLink, 'link')}
@@ -198,15 +200,15 @@ export const InvitePage: React.FC = () => {
       </Card>
 
       {/* How it Works */}
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Nasıl Çalışır?</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-start space-x-3">
-              <Badge variant="secondary" className="mt-1">1</Badge>
-              <div>
+        <CardContent className="w-full">
+          <div className="space-y-4 w-full">
+            <div className="flex items-start space-x-3 w-full">
+              <Badge variant="secondary" className="mt-1 flex-shrink-0">1</Badge>
+              <div className="flex-1">
                 <h3 className="font-medium">Arkadaşlarını Davet Et</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Referans kodunu veya linki arkadaşlarınla paylaş
@@ -214,9 +216,9 @@ export const InvitePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start space-x-3">
-              <Badge variant="secondary" className="mt-1">2</Badge>
-              <div>
+            <div className="flex items-start space-x-3 w-full">
+              <Badge variant="secondary" className="mt-1 flex-shrink-0">2</Badge>
+              <div className="flex-1">
                 <h3 className="font-medium">Kayıt Olsunlar</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Arkadaşların uygulamaya kayıt olurken kodunu girsin
@@ -224,9 +226,9 @@ export const InvitePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start space-x-3">
-              <Badge variant="secondary" className="mt-1">3</Badge>
-              <div>
+            <div className="flex items-start space-x-3 w-full">
+              <Badge variant="secondary" className="mt-1 flex-shrink-0">3</Badge>
+              <div className="flex-1">
                 <h3 className="font-medium">Ödül Kazan</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Her başarılı davet için 5₺ ödül kazan
@@ -234,9 +236,9 @@ export const InvitePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start space-x-3">
-              <Badge variant="secondary" className="mt-1">4</Badge>
-              <div>
+            <div className="flex items-start space-x-3 w-full">
+              <Badge variant="secondary" className="mt-1 flex-shrink-0">4</Badge>
+              <div className="flex-1">
                 <h3 className="font-medium">Premium Özellikler</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Kazandığın ödüllerle premium abonelik satın al
@@ -248,10 +250,10 @@ export const InvitePage: React.FC = () => {
       </Card>
 
       {/* Terms */}
-      <Card className="border-l-4 border-l-yellow-400">
+      <Card className="border-l-4 border-l-yellow-400 w-full">
         <CardContent className="p-4">
           <h3 className="font-semibold mb-2">📋 Şartlar ve Koşullar</h3>
-          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 w-full">
             <li>• Her başarılı davet için 5₺ ödül kazanırsın</li>
             <li>• Ödüller 24 saat içinde hesabına yansır</li>
             <li>• Minimum 20₺ biriktirdiğinde premium satın alabilirsin</li>
@@ -263,11 +265,13 @@ export const InvitePage: React.FC = () => {
 
       {/* Bottom Ad */}
       {!user?.isPremium && (
-        <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+        <div className="w-full">
+          <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
+        </div>
       )}
 
       {/* Technical Note */}
-      <Card>
+      <Card className="w-full">
         <CardContent className="p-4 text-center">
           <p className="text-xs text-gray-500 dark:text-gray-400">
             TODO: Firebase ile gerçek referral sistemi entegre edilecek

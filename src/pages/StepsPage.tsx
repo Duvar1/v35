@@ -87,9 +87,9 @@ export const StepsPage: React.FC = () => {
   const isGoalAchieved = todaySteps >= dailyGoal;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 space-y-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 space-y-6 no-horizontal-scroll">
       {/* Header */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-2 w-full">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           Adımlarım
         </h1>
@@ -100,13 +100,15 @@ export const StepsPage: React.FC = () => {
 
       {/* Top Ad */}
       {!user?.isPremium && (
-        <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+        <div className="w-full">
+          <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
+        </div>
       )}
 
       {/* Today's Steps */}
-      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
-        <CardContent className="p-6 text-center">
-          <div className="flex items-center justify-center mb-4">
+      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 w-full">
+        <CardContent className="p-6 text-center w-full">
+          <div className="flex items-center justify-center mb-4 w-full">
             <Footprints className="h-8 w-8 text-blue-600 mr-2" />
             <h2 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
               Bugünkü Adımlar
@@ -117,10 +119,10 @@ export const StepsPage: React.FC = () => {
             {todaySteps.toLocaleString()}
           </div>
           
-          <div className="space-y-3">
-            <Progress value={progressPercentage} className="h-3" />
+          <div className="space-y-3 w-full">
+            <Progress value={progressPercentage} className="h-3 w-full" />
             
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm w-full">
               <span className="text-blue-600 dark:text-blue-300">
                 Hedef: {dailyGoal.toLocaleString()}
               </span>
@@ -130,7 +132,7 @@ export const StepsPage: React.FC = () => {
             </div>
             
             {isGoalAchieved && (
-              <div className="flex items-center justify-center space-x-2 text-green-600 dark:text-green-400">
+              <div className="flex items-center justify-center space-x-2 text-green-600 dark:text-green-400 w-full">
                 <Award className="h-5 w-5" />
                 <span className="font-medium">Günlük hedef tamamlandı! 🎉</span>
               </div>
@@ -140,23 +142,23 @@ export const StepsPage: React.FC = () => {
       </Card>
 
       {/* Step Tracking Controls */}
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Settings className="h-5 w-5" />
             <span>Adım Takibi</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 w-full">
           {!isSupported ? (
-            <div className="bg-red-50 dark:bg-red-900 p-4 rounded-lg">
+            <div className="bg-red-50 dark:bg-red-900 p-4 rounded-lg w-full">
               <p className="text-red-700 dark:text-red-300 text-sm">
                 ⚠️ Bu cihazda otomatik adım sayar desteklenmiyor. Manuel olarak adım sayınızı girebilirsiniz.
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="space-y-3 w-full">
+              <div className="flex items-center justify-between w-full">
                 <span className="font-medium">Otomatik Takip</span>
                 <Button
                   onClick={isTracking ? handleStopTracking : handleStartTracking}
@@ -178,7 +180,7 @@ export const StepsPage: React.FC = () => {
               </div>
               
               {permission === 'denied' && (
-                <p className="text-red-600 dark:text-red-400 text-sm">
+                <p className="text-red-600 dark:text-red-400 text-sm w-full">
                   Hareket sensörü izni reddedildi. Tarayıcı ayarlarından izin verebilirsiniz.
                 </p>
               )}
@@ -186,12 +188,12 @@ export const StepsPage: React.FC = () => {
           )}
           
           {/* Goal Setting */}
-          <div className="space-y-2">
+          <div className="space-y-2 w-full">
             <label className="font-medium flex items-center space-x-2">
               <Target className="h-4 w-4" />
               <span>Günlük Hedef</span>
             </label>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 w-full">
               <Input
                 type="number"
                 value={newGoal}
@@ -199,6 +201,7 @@ export const StepsPage: React.FC = () => {
                 placeholder="Günlük adım hedefi"
                 min="1000"
                 max="50000"
+                className="flex-1"
               />
               <Button onClick={handleUpdateGoal} variant="outline">
                 Güncelle
@@ -210,14 +213,18 @@ export const StepsPage: React.FC = () => {
 
       {/* Middle Ad */}
       {!user?.isPremium && (
-        <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+        <div className="w-full">
+          <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
+        </div>
       )}
 
       {/* Weekly Chart */}
-      <StepChart weeklySteps={weeklySteps} dailyGoal={dailyGoal} />
+      <div className="w-full">
+        <StepChart weeklySteps={weeklySteps} dailyGoal={dailyGoal} />
+      </div>
 
       {/* Motivational Message */}
-      <Card className="border-l-4 border-l-green-400">
+      <Card className="border-l-4 border-l-green-400 w-full">
         <CardContent className="p-4">
           <h3 className="font-semibold mb-2">💪 Günün Motivasyonu</h3>
           <p className="text-gray-700 dark:text-gray-300 text-sm italic">
@@ -231,11 +238,13 @@ export const StepsPage: React.FC = () => {
 
       {/* Bottom Ad */}
       {!user?.isPremium && (
-        <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+        <div className="w-full">
+          <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
+        </div>
       )}
 
       {/* Technical Note */}
-      <Card>
+      <Card className="w-full">
         <CardContent className="p-4 text-center">
           <p className="text-xs text-gray-500 dark:text-gray-400">
             TODO: DeviceMotion API ile gerçek adım sayımı entegre edilecek

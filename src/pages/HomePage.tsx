@@ -183,7 +183,7 @@ export const HomePage: React.FC = () => {
   const nextPrayer = getNextPrayer();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900 no-horizontal-scroll">
       {/* Fixed Header */}
       <div className="sticky top-0 z-10 bg-gradient-to-r from-pink-100/90 via-orange-100/90 to-blue-100/90 dark:from-purple-900/90 dark:via-blue-900/90 dark:to-cyan-900/90 backdrop-blur-md border-b border-pink-200/50 dark:border-purple-500/30">
         <div className="p-4">
@@ -207,27 +207,29 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* Scrollable Content */}
-      <div className="pb-20 px-4 space-y-6">
+      <div className="pb-20 px-4 space-y-6 w-full max-w-full overflow-x-hidden">
         {/* Top Ad */}
         {!user?.isPremium && (
-          <div className="pt-4">
-            <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+          <div className="pt-4 w-full">
+            <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
           </div>
         )}
 
         {/* Countdown Timer */}
-        <div className="pt-2">
+        <div className="pt-2 w-full">
           {loading ? (
-            <Card className="animate-pulse bg-gradient-to-r from-pink-200/60 via-orange-200/60 to-blue-200/60 dark:from-purple-800/40 dark:via-blue-800/40 dark:to-cyan-800/40 border-pink-200/50 dark:border-purple-500/30">
+            <Card className="animate-pulse bg-gradient-to-r from-pink-200/60 via-orange-200/60 to-blue-200/60 dark:from-purple-800/40 dark:via-blue-800/40 dark:to-cyan-800/40 border-pink-200/50 dark:border-purple-500/30 w-full">
               <CardContent className="p-6 h-32"></CardContent>
             </Card>
           ) : (
-            <CountdownTimer nextPrayer={nextPrayer} />
+            <div className="w-full">
+              <CountdownTimer nextPrayer={nextPrayer} />
+            </div>
           )}
         </div>
 
         {/* Quick Prayer Times - Grid Layout */}
-        <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30">
+        <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30 w-full">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
               <Clock className="h-5 w-5 text-blue-600 dark:text-cyan-400" />
@@ -236,16 +238,16 @@ export const HomePage: React.FC = () => {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 w-full">
                 {[...Array(6)].map((_, i) => (
                   <div
                     key={i}
-                    className="animate-pulse bg-gradient-to-r from-pink-200/60 via-orange-200/60 to-blue-200/60 dark:from-purple-800/40 dark:via-blue-800/40 dark:to-cyan-800/40 h-12 rounded-lg"
+                    className="animate-pulse bg-gradient-to-r from-pink-200/60 via-orange-200/60 to-blue-200/60 dark:from-purple-800/40 dark:via-blue-800/40 dark:to-cyan-800/40 h-12 rounded-lg w-full"
                   ></div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 w-full">
                 {prayerTimes?.prayers.map((prayer) => {
                   const now = new Date();
                   const currentTime = now.getHours() * 60 + now.getMinutes();
@@ -262,7 +264,7 @@ export const HomePage: React.FC = () => {
                   return (
                     <div
                       key={prayer.name}
-                      className={`p-3 rounded-lg text-center transition-all duration-300 backdrop-blur-sm ${
+                      className={`p-3 rounded-lg text-center transition-all duration-300 backdrop-blur-sm w-full ${
                         isNext
                           ? 'bg-gradient-to-r from-pink-500 via-orange-500 to-blue-500 border-2 border-white/30 shadow-lg transform scale-105'
                           : isPassed
@@ -297,62 +299,70 @@ export const HomePage: React.FC = () => {
         </Card>
 
         {/* Daily Content Section */}
-        <div className="space-y-4">
+        <div className="space-y-4 w-full">
           <h2 className="text-xl font-light text-pink-800 dark:text-purple-200">
             Günün İçeriği
           </h2>
           
           {/* Günün Ayeti */}
           {!verseLoading && dailyVerse && (
-            <DailyContentCard
-              type="verse"
-              arabic={dailyVerse.arabic}
-              turkish={dailyVerse.turkish}
-              reference={dailyVerse.reference}
-              accentColor="gold"
-            />
+            <div className="w-full">
+              <DailyContentCard
+                type="verse"
+                arabic={dailyVerse.arabic}
+                turkish={dailyVerse.turkish}
+                reference={dailyVerse.reference}
+                accentColor="gold"
+              />
+            </div>
           )}
           
           {/* Günün Hadisi */}
           {!hadithLoading && dailyHadith && (
-            <DailyContentCard
-              type="hadith"
-              arabic={dailyHadith.hadeeth || ""}
-              turkish={dailyHadith.explanation || dailyHadith.title || ""}
-              reference={dailyHadith.reference || "Hadis"}
-              accentColor="turquoise"
-            />
+            <div className="w-full">
+              <DailyContentCard
+                type="hadith"
+                arabic={dailyHadith.hadeeth || ""}
+                turkish={dailyHadith.explanation || dailyHadith.title || ""}
+                reference={dailyHadith.reference || "Hadis"}
+                accentColor="turquoise"
+              />
+            </div>
           )}
           
           {/* Günün Duası */}
           {!duaLoading && dailyDua && (
-            <DailyContentCard
-              type="prayer"
-              arabic={dailyDua.ARABIC_TEXT}
-              turkish={dailyDua.TURKISH_TEXT}
-              reference={`Hisn Muslim - Dua ${dailyDua.ID}`}
-              accentColor="soft-gold"
-            />
+            <div className="w-full">
+              <DailyContentCard
+                type="prayer"
+                arabic={dailyDua.ARABIC_TEXT}
+                turkish={dailyDua.TURKISH_TEXT}
+                reference={`Hisn Muslim - Dua ${dailyDua.ID}`}
+                accentColor="soft-gold"
+              />
+            </div>
           )}
         </div>
 
         {/* Middle Ad */}
         {!user?.isPremium && (
-          <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+          <div className="w-full">
+            <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
+          </div>
         )}
 
         {/* Quick Actions */}
-        <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30">
+        <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30 w-full">
           <CardHeader>
             <CardTitle className="text-lg font-light text-pink-800 dark:text-purple-200">
               Hızlı Erişim
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 w-full">
               <Button
                 variant="outline"
-                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30"
+                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30 w-full"
                 onClick={() => (window.location.href = '/qibla')}
               >
                 <div className="w-8 h-8 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
@@ -367,7 +377,7 @@ export const HomePage: React.FC = () => {
 
               <Button
                 variant="outline"
-                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30"
+                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30 w-full"
                 onClick={() => (window.location.href = '/quran')}
               >
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full flex items-center justify-center">
@@ -380,7 +390,7 @@ export const HomePage: React.FC = () => {
 
               <Button
                 variant="outline"
-                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30"
+                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30 w-full"
                 onClick={() => (window.location.href = '/duas')}
               >
                 <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
@@ -393,7 +403,7 @@ export const HomePage: React.FC = () => {
 
               <Button
                 variant="outline"
-                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30"
+                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30 w-full"
                 onClick={() => (window.location.href = '/settings')}
               >
                 <div className="w-8 h-8 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
@@ -410,7 +420,7 @@ export const HomePage: React.FC = () => {
         </Card>
 
         {/* Stats Card */}
-        <Card className="bg-gradient-to-r from-pink-200/80 via-orange-200/80 to-blue-200/80 dark:from-pink-900/40 dark:via-orange-900/40 dark:to-blue-900/40 border border-pink-300/70 dark:border-pink-700/70">
+        <Card className="bg-gradient-to-r from-pink-200/80 via-orange-200/80 to-blue-200/80 dark:from-pink-900/40 dark:via-orange-900/40 dark:to-blue-900/40 border border-pink-300/70 dark:border-pink-700/70 w-full">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -428,7 +438,9 @@ export const HomePage: React.FC = () => {
 
         {/* Bottom Ad */}
         {!user?.isPremium && (
-          <AdPlaceholder type="banner" className="max-w-md mx-auto" />
+          <div className="w-full">
+            <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
+          </div>
         )}
 
         <div className="h-4"></div>
