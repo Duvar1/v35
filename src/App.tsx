@@ -7,7 +7,7 @@ import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import { HomePage } from './pages/HomePage';
 import { PrayerTimesPage } from './pages/PrayerTimesPage';
-import { QiblaPage } from './pages/QiblaPage';
+import QiblaPage from "./pages/QiblaPage";
 import { QuranPage } from './pages/QuranPage';
 import { StepsPage } from './pages/StepsPage';
 import { InvitePage } from './pages/InvitePage';
