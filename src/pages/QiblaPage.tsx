@@ -31,7 +31,7 @@ export const QiblaPage: React.FC = () => {
   };
 
   // ------------------------------------------------
-  // 2) DÜZELTİLMİŞ COMPASS SENSÖR (180 derece sorunu çözüldü)
+  // 2) DÜZELTİLMİŞ COMPASS SENSÖR VE OK HESAPLAMASI
   // ------------------------------------------------
   useEffect(() => {
     const handleOrientation = (event: DeviceOrientationEvent) => {
@@ -75,7 +75,7 @@ export const QiblaPage: React.FC = () => {
 
       // kıble okunu döndür - DÜZELTİLMİŞ HESAP
       if (arrowRef.current && qibla > 0) {
-        // Kıble yönü = (Kıble açısı - Pusula yönü) mod 360
+        // DÜZELTME: Ok rotasyonu = (Kıble açısı - Pusula açısı)
         let arrowRotation = (qibla - correctedHeading + 360) % 360;
         
         // Arrow'u kıble yönüne çevir
@@ -205,13 +205,18 @@ export const QiblaPage: React.FC = () => {
               drop-shadow-[0_0_8px_rgba(0,0,0,0.5)] z-10"
             />
 
-            {/* Kıble oku */}
+            {/* Kıble oku - DÜZELTİLMİŞ STİL */}
             <div
               ref={arrowRef}
               className="absolute left-1/2 top-1/2 origin-center 
               -translate-x-1/2 -translate-y-1/2 h-32 transition-transform duration-100 z-20"
+              style={{ transformOrigin: 'center center' }}
             >
-              <Navigation className="h-16 w-16 text-red-600 dark:text-red-400 drop-shadow-xl" strokeWidth={1.5} />
+              <Navigation 
+                className="h-16 w-16 text-red-600 dark:text-red-400 drop-shadow-xl" 
+                strokeWidth={1.5} 
+                style={{ transform: 'rotate(0deg)' }} // Başlangıç pozisyonu
+              />
             </div>
           </div>
 
@@ -232,6 +237,10 @@ export const QiblaPage: React.FC = () => {
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   Pusula: {Math.round(heading)}° | Kalibrasyon: {calibration}°
+                </p>
+                {/* DEBUG: Ok rotasyon bilgisi */}
+                <p className="text-xs text-blue-500 dark:text-blue-300">
+                  Ok Rotasyon: {Math.round((qibla - heading + 360) % 360)}°
                 </p>
               </>
             )}

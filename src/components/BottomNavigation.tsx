@@ -79,8 +79,8 @@ export const BottomNavigation: React.FC = () => {
 
   return (
     <>
-      {/* Main Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50">
+      {/* Main Bottom Navigation - Sadece bu kısma padding eklendi */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50 safe-area-inset-bottom">
         <div className="grid grid-cols-5 h-16">
           {navItems.map((item) => (
             <button
@@ -103,8 +103,8 @@ export const BottomNavigation: React.FC = () => {
         </div>
       </div>
 
-      {/* Secondary Navigation (Floating Action Menu) */}
-      <div className="fixed bottom-20 right-4 z-40">
+      {/* Secondary Navigation (Floating Action Menu) - Bottom değeri güncellendi */}
+      <div className="fixed bottom-24 right-4 z-40 safe-area-inset-bottom">
         <div className="flex flex-col space-y-2">
           {secondaryNavItems.map((item) => (
             <button

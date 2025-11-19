@@ -36,6 +36,7 @@ import {
   CalculationMethod,
 } from "../store/settingsStore";
 import { useUserStore } from "../store/userStore";
+import { AdPlaceholder } from '../components/AdPlaceholder'; // AdPlaceholder'ı import et
 
 // --- OPENCAGE API ANAHTARI ---
 const OPENCAGE_API_KEY = "b8ee6e29303b4697becad33d98b1562e";
@@ -214,6 +215,17 @@ export const SettingsPage: React.FC = () => {
 
       {/* CONTENT */}
       <div className="mx-auto flex max-w-full flex-col gap-6 px-4 pb-28 pt-6 w-full overflow-x-hidden">
+        
+        {/* BAŞA REKLAM */}
+        {!user?.isPremium && (
+          <div className="w-full max-w-sm mx-auto">
+            <AdPlaceholder 
+              type="banner" 
+              className="w-full border border-blue-200 dark:border-blue-900 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md" 
+            />
+          </div>
+        )}
+
         {/* KONUM AYARLARI */}
         <Card className="overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 w-full">
           <CardHeader className="border-b border-sky-100/80 pb-3 dark:border-slate-800/80">
@@ -374,6 +386,16 @@ export const SettingsPage: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* ORTAYA REKLAM */}
+        {!user?.isPremium && (
+          <div className="w-full max-w-sm mx-auto">
+            <AdPlaceholder 
+              type="banner" 
+              className="w-full border border-blue-200 dark:border-blue-900 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md" 
+            />
+          </div>
+        )}
+
         {/* TEMA AYARLARI */}
         <Card className="overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/90 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 w-full">
           <CardHeader className="border-b border-sky-100/80 pb-3 dark:border-slate-800/80">
@@ -519,6 +541,16 @@ export const SettingsPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* ALTA REKLAM */}
+        {!user?.isPremium && (
+          <div className="w-full max-w-sm mx-auto">
+            <AdPlaceholder 
+              type="banner" 
+              className="w-full border border-blue-200 dark:border-blue-900 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md" 
+            />
+          </div>
+        )}
 
         {/* ACTION BUTTONS */}
         <div className="space-y-3 w-full">
