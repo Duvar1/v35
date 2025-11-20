@@ -1,143 +1,148 @@
+// src/services/stepsService.ts
+import { Capacitor } from "@capacitor/core";
+
+export interface DailySteps {
+  date: string;
+  steps: number;
+}
+
 export class StepsService {
   private static instance: StepsService;
-  private stepCount: number = 0;
-  private isTracking: boolean = false;
-  private lastAcceleration: DeviceMotionEventAcceleration | null = null;
-  
+  private stepCount = 0;
+  private isTracking = false;
+  private lastAcc: DeviceMotionEventAcceleration | null = null;
+
   static getInstance(): StepsService {
     if (!this.instance) {
       this.instance = new StepsService();
     }
     return this.instance;
   }
-  
-  // Check if device motion is supported
+
+  // ------------------------------
+  // 1) Destek kontrolü
+  // ------------------------------
   isSupported(): boolean {
-    return 'DeviceMotionEvent' in window;
+    if (Capacitor.isNativePlatform()) return true;
+    return "DeviceMotionEvent" in window;
   }
-  
-  // Check current permission status
-  async checkPermission(): Promise<'granted' | 'denied' | 'prompt'> {
-    // TODO: This is a simplified check
-    // Real implementation would need to handle different browsers differently
-    
-    if (!this.isSupported()) {
-      return 'denied';
-    }
-    
-    // For iOS 13+ devices, permission is required
-    if (typeof (DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> }).requestPermission === 'function') {
+
+  // ------------------------------
+  // 2) İzin isteme
+  // ------------------------------
+  async requestPermission(): Promise<"granted" | "denied"> {
+    if (!this.isSupported()) return "denied";
+
+    // Native cihaz → izin otomatik olur
+    if (Capacitor.isNativePlatform()) return "granted";
+
+    // iOS 13+
+    const motion = DeviceMotionEvent as any;
+    if (motion.requestPermission) {
       try {
-        const permission = await (DeviceMotionEvent as unknown as { requestPermission: () => Promise<string> }).requestPermission();
-        return permission === 'granted' ? 'granted' : 'denied';
-      } catch (error) {
-        return 'denied';
+        const res = await motion.requestPermission();
+        return res === "granted" ? "granted" : "denied";
+      } catch {
+        return "denied";
       }
     }
-    
-    // For other devices, assume granted if supported
-    return 'granted';
+
+    return "granted";
   }
-  
-  // Request permission for device motion
-  async requestPermission(): Promise<'granted' | 'denied'> {
-    if (!this.isSupported()) {
-      throw new Error('Device motion is not supported');
+
+  // ------------------------------
+  // 3) Native adım sayısını çek
+  // ------------------------------
+  async getNativeSteps(): Promise<number> {
+    if (!Capacitor.isNativePlatform()) return this.stepCount;
+
+    try {
+      // @ts-ignore
+      const result = await (Plugins as any).Steps.getSteps();
+      return result.steps ?? 0;
+    } catch {
+      return 0;
     }
-    
-    if (typeof (DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> }).requestPermission === 'function') {
-      try {
-        const permission = await (DeviceMotionEvent as unknown as { requestPermission: () => Promise<string> }).requestPermission();
-        return permission === 'granted' ? 'granted' : 'denied';
-      } catch (error) {
-        return 'denied';
-      }
-    }
-    
-    return 'granted';
   }
-  
-  // Start step tracking
-  async startTracking(onStepDetected?: (steps: number) => void): Promise<void> {
+
+  // ------------------------------
+  // 4) Adım takibini başlat
+  // ------------------------------
+  async startTracking(onStep: (steps: number) => void): Promise<void> {
     if (this.isTracking) return;
-    
-    const permission = await this.checkPermission();
-    if (permission !== 'granted') {
-      throw new Error('Permission not granted for device motion');
-    }
-    
     this.isTracking = true;
-    this.stepCount = 0;
-    
-    // TODO: Implement proper step detection algorithm
-    // This is a simplified version for demonstration
-    const handleDeviceMotion = (event: DeviceMotionEvent) => {
+
+    // Native cihaz → gerçek sensör
+    if (Capacitor.isNativePlatform()) {
+      setInterval(async () => {
+        const steps = await this.getNativeSteps();
+        onStep(Math.floor(steps));
+      }, 1500);
+      return;
+    }
+
+    // WEB fallback (acceleration)
+    window.addEventListener("devicemotion", this.motionHandler(onStep));
+  }
+
+  private motionHandler(onStep: (steps: number) => void) {
+    return (event: DeviceMotionEvent) => {
       if (!this.isTracking) return;
-      
-      const acceleration = event.accelerationIncludingGravity;
-      if (!acceleration) return;
-      
-      // Simple step detection based on acceleration changes
-      // Real implementation would need more sophisticated algorithms
-      if (this.lastAcceleration) {
-        const deltaY = Math.abs((acceleration.y || 0) - (this.lastAcceleration.y || 0));
-        
-        // Threshold for step detection (simplified)
-        if (deltaY > 2) {
+
+      const acc = event.accelerationIncludingGravity;
+      if (!acc) return;
+
+      if (this.lastAcc) {
+        const dy = Math.abs((acc.y ?? 0) - (this.lastAcc.y ?? 0));
+        if (dy > 2) {
           this.stepCount++;
-          onStepDetected?.(this.stepCount);
+          onStep(this.stepCount);
         }
       }
-      
-      this.lastAcceleration = acceleration;
+
+      this.lastAcc = acc;
     };
-    
-    window.addEventListener('devicemotion', handleDeviceMotion);
-    
-    console.log('Step tracking started - TODO: Implement proper step detection algorithm');
   }
-  
-  // Stop step tracking
-  stopTracking(): void {
+
+  // ------------------------------
+  // 5) Takibi durdur
+  // ------------------------------
+  stopTracking() {
     this.isTracking = false;
-    window.removeEventListener('devicemotion', this.handleDeviceMotion);
-    console.log('Step tracking stopped');
+    window.removeEventListener("devicemotion", this.motionHandler(() => {}));
   }
-  
-  private handleDeviceMotion = (event: DeviceMotionEvent) => {
-    // This will be replaced by the actual handler in startTracking
-  };
-  
-  // Get current step count
+
+  // ------------------------------
+  // 6) Bugünün adımlarını al
+  // ------------------------------
   getCurrentSteps(): number {
     return this.stepCount;
   }
-  
-  // Reset step count
-  resetSteps(): void {
-    this.stepCount = 0;
-  }
-  
-  // Generate dummy steps for testing
-  generateDummySteps(): number {
-    return Math.floor(Math.random() * 8000) + 1000; // Random steps between 1000-9000
-  }
-  
-  // Get weekly dummy data
-  getWeeklyDummyData(): Array<{ date: string; steps: number }> {
-    const weeklyData = [];
+
+  // ------------------------------
+  // 7) Weekly boş data
+  // ------------------------------
+  getEmptyWeeklyData(): DailySteps[] {
+    const weekly: DailySteps[] = [];
     const today = new Date();
-    
+
     for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      weeklyData.push({
-        date: date.toISOString().split('T')[0],
-        steps: this.generateDummySteps()
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+
+      weekly.push({
+        date: d.toISOString().split("T")[0],
+        steps: 0,
       });
     }
-    
-    return weeklyData;
+
+    return weekly;
+  }
+
+  // ------------------------------
+  // 8) Dummy step (web için)
+  // ------------------------------
+  generateDummySteps(): number {
+    return Math.floor(Math.random() * 8000) + 1000;
   }
 }

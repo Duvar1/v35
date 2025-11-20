@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Footprints, Target, Play, Pause, Settings, Award } from 'lucide-react';
+import { Footprints, Target, Play, Pause, Settings, Award, CalendarDays } from 'lucide-react';
+
 import { StepChart } from '../components/StepChart';
 import { AdPlaceholder } from '../components/AdPlaceholder';
+
 import { useStepsStore } from '../store/stepsStore';
 import { useUserStore } from '../store/userStore';
 import { StepsService } from '../services/stepsService';
@@ -15,35 +17,34 @@ export const StepsPage: React.FC = () => {
     dailyGoal,
     todaySteps,
     weeklySteps,
+    monthlySteps,
     isSupported,
     permission,
     setDailyGoal,
     updateTodaySteps,
     setWeeklySteps,
     setSupported,
-    setPermission
+    setPermission,
   } = useStepsStore();
 
   const { user } = useUserStore();
   const [isTracking, setIsTracking] = useState(false);
   const [newGoal, setNewGoal] = useState(dailyGoal.toString());
+
   const stepsService = StepsService.getInstance();
 
+  // 📌 Şu ayın toplam adımı
+  const monthKey = new Date().toISOString().slice(0, 7);
+  const monthlyTotal = monthlySteps[monthKey] || 0;
+
   useEffect(() => {
-    // Check if step tracking is supported
     const supported = stepsService.isSupported();
     setSupported(supported);
 
-    // Load weekly dummy data if no data exists
+    // İlk yüklemede haftalık boş liste oluştur
     if (weeklySteps.length === 0) {
-      const dummyData = stepsService.getWeeklyDummyData();
-      setWeeklySteps(dummyData);
-    }
-
-    // Set today's steps to dummy value if zero
-    if (todaySteps === 0) {
-      const dummySteps = stepsService.generateDummySteps();
-      updateTodaySteps(dummySteps);
+      const emptyWeek = stepsService.getEmptyWeeklyData();
+      setWeeklySteps(emptyWeek);
     }
   }, []);
 
@@ -87,15 +88,12 @@ export const StepsPage: React.FC = () => {
   const isGoalAchieved = todaySteps >= dailyGoal;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 space-y-6 no-horizontal-scroll">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900 p-4 space-y-6 no-horizontal-scroll">
+
       {/* Header */}
-      <div className="text-center space-y-2 w-full">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Adımlarım
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Günlük adım hedefinizi takip edin
-        </p>
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl font-light text-pink-800 dark:text-purple-200">Adımlarım</h1>
+        <p className="text-pink-600 dark:text-purple-400 font-light">Günlük adım hedefinizi takip edin</p>
       </div>
 
       {/* Top Ad */}
@@ -106,104 +104,116 @@ export const StepsPage: React.FC = () => {
       )}
 
       {/* Today's Steps */}
-      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 w-full">
-        <CardContent className="p-6 text-center w-full">
-          <div className="flex items-center justify-center mb-4 w-full">
-            <Footprints className="h-8 w-8 text-blue-600 mr-2" />
-            <h2 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+      <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30">
+        <CardContent className="p-6 text-center">
+          <div className="flex items-center justify-center mb-4">
+            <Footprints className="h-8 w-8 text-pink-600 dark:text-purple-300 mr-2" />
+            <h2 className="text-lg font-light text-pink-800 dark:text-purple-200">
               Bugünkü Adımlar
             </h2>
           </div>
-          
-          <div className="text-5xl font-bold text-blue-700 dark:text-blue-100 mb-2">
+
+          <div className="text-5xl font-light text-pink-700 dark:text-purple-100 mb-2">
             {todaySteps.toLocaleString()}
           </div>
-          
-          <div className="space-y-3 w-full">
-            <Progress value={progressPercentage} className="h-3 w-full" />
-            
-            <div className="flex items-center justify-between text-sm w-full">
-              <span className="text-blue-600 dark:text-blue-300">
-                Hedef: {dailyGoal.toLocaleString()}
-              </span>
-              <span className={`font-medium ${isGoalAchieved ? 'text-green-600' : 'text-blue-600'}`}>
-                %{Math.round(progressPercentage)}
-              </span>
-            </div>
-            
-            {isGoalAchieved && (
-              <div className="flex items-center justify-center space-x-2 text-green-600 dark:text-green-400 w-full">
-                <Award className="h-5 w-5" />
-                <span className="font-medium">Günlük hedef tamamlandı! 🎉</span>
-              </div>
-            )}
+
+          <Progress value={progressPercentage} className="h-3 bg-pink-200/50 dark:bg-purple-700/30" />
+
+          <div className="flex items-center justify-between text-sm mt-2">
+            <span className="text-pink-600 dark:text-purple-300 font-light">
+              Hedef: {dailyGoal.toLocaleString()}
+            </span>
+            <span className={`${isGoalAchieved ? 'text-green-600' : 'text-pink-600 dark:text-purple-300'} font-light`}>
+              %{Math.round(progressPercentage)}
+            </span>
           </div>
+
+          {isGoalAchieved && (
+            <div className="flex items-center justify-center space-x-2 text-green-600 mt-3">
+              <Award className="h-5 w-5" />
+              <span className="font-light">Günlük hedef tamamlandı! 🎉</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Step Tracking Controls */}
-      <Card className="w-full">
+      {/* 📅 MONTHLY TOTAL CARD */}
+      <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border-l-4 border-l-purple-400 border border-pink-200/50 dark:border-purple-500/30">
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-2 mb-1">
+            <CalendarDays className="h-5 w-5 text-purple-600 dark:text-purple-300" />
+            <h3 className="font-light text-pink-800 dark:text-purple-200">Bu Ayki Toplam Adım</h3>
+          </div>
+          <p className="text-3xl font-light text-purple-700 dark:text-purple-300">
+            {monthlyTotal.toLocaleString()}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Step Tracking */}
+      <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Settings className="h-5 w-5" />
+          <CardTitle className="flex items-center space-x-2 font-light text-pink-800 dark:text-purple-200">
+            <Settings className="h-5 w-5 text-blue-600 dark:text-cyan-400" />
             <span>Adım Takibi</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 w-full">
+
+        <CardContent className="space-y-4">
           {!isSupported ? (
-            <div className="bg-red-50 dark:bg-red-900 p-4 rounded-lg w-full">
-              <p className="text-red-700 dark:text-red-300 text-sm">
-                ⚠️ Bu cihazda otomatik adım sayar desteklenmiyor. Manuel olarak adım sayınızı girebilirsiniz.
-              </p>
+            <div className="bg-gradient-to-r from-red-100/80 to-pink-100/80 dark:from-red-900/40 dark:to-pink-900/40 p-4 rounded-lg text-red-700 dark:text-red-300 text-sm border border-red-200/50 dark:border-red-500/30">
+              ⚠️ Bu cihazda otomatik adım sayar desteklenmiyor.
             </div>
           ) : (
-            <div className="space-y-3 w-full">
-              <div className="flex items-center justify-between w-full">
-                <span className="font-medium">Otomatik Takip</span>
-                <Button
-                  onClick={isTracking ? handleStopTracking : handleStartTracking}
-                  variant={isTracking ? "destructive" : "default"}
-                  size="sm"
-                >
-                  {isTracking ? (
-                    <>
-                      <Pause className="h-4 w-4 mr-2" />
-                      Durdur
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Başlat
-                    </>
-                  )}
-                </Button>
-              </div>
-              
-              {permission === 'denied' && (
-                <p className="text-red-600 dark:text-red-400 text-sm w-full">
-                  Hareket sensörü izni reddedildi. Tarayıcı ayarlarından izin verebilirsiniz.
-                </p>
-              )}
+            <div className="flex items-center justify-between">
+              <span className="font-light text-pink-800 dark:text-purple-200">Otomatik Takip</span>
+
+              <Button
+                onClick={isTracking ? handleStopTracking : handleStartTracking}
+                variant={isTracking ? 'destructive' : 'default'}
+                size="sm"
+                className="bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600 border-0 text-white font-light"
+              >
+                {isTracking ? (
+                  <>
+                    <Pause className="h-4 w-4 mr-2" /> Durdur
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" /> Başlat
+                  </>
+                )}
+              </Button>
             </div>
           )}
-          
-          {/* Goal Setting */}
-          <div className="space-y-2 w-full">
-            <label className="font-medium flex items-center space-x-2">
-              <Target className="h-4 w-4" />
+
+          {permission === 'denied' && (
+            <p className="text-red-600 dark:text-red-400 text-sm font-light">
+              Hareket sensörü izni reddedildi. Tarayıcı ayarlarından açmalısınız.
+            </p>
+          )}
+
+          {/* Goal */}
+          <div className="space-y-2">
+            <label className="font-light flex items-center space-x-2 text-pink-800 dark:text-purple-200">
+              <Target className="h-4 w-4 text-orange-600 dark:text-orange-400" />
               <span>Günlük Hedef</span>
             </label>
-            <div className="flex space-x-2 w-full">
+            <div className="flex space-x-2">
               <Input
                 type="number"
                 value={newGoal}
                 onChange={(e) => setNewGoal(e.target.value)}
-                placeholder="Günlük adım hedefi"
                 min="1000"
                 max="50000"
-                className="flex-1"
+                className="flex-1 bg-white/70 dark:bg-gray-800/70 border-pink-200/50 dark:border-purple-500/30 font-light"
+                placeholder="Günlük hedefiniz"
               />
-              <Button onClick={handleUpdateGoal} variant="outline">
+              <Button 
+                onClick={handleUpdateGoal} 
+                variant="outline"
+                className="bg-gradient-to-r from-pink-100/80 to-blue-100/80 dark:from-purple-800/60 dark:to-cyan-800/60 border-pink-200/50 dark:border-purple-500/30 text-pink-800 dark:text-purple-200 font-light hover:from-pink-200/80 hover:to-blue-200/80"
+              >
                 Güncelle
               </Button>
             </div>
@@ -219,38 +229,30 @@ export const StepsPage: React.FC = () => {
       )}
 
       {/* Weekly Chart */}
-      <div className="w-full">
-        <StepChart weeklySteps={weeklySteps} dailyGoal={dailyGoal} />
-      </div>
+      <StepChart weeklySteps={weeklySteps} dailyGoal={dailyGoal} />
 
       {/* Motivational Message */}
-      <Card className="border-l-4 border-l-green-400 w-full">
+      <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border-l-4 border-l-green-400 border border-pink-200/50 dark:border-purple-500/30">
         <CardContent className="p-4">
-          <h3 className="font-semibold mb-2">💪 Günün Motivasyonu</h3>
-          <p className="text-gray-700 dark:text-gray-300 text-sm italic">
-            "Her adım, sağlığınıza doğru atılmış bir adımdır. Allah'ın size verdiği bu nimetin kıymetini bilin."
+          <h3 className="font-light mb-2 text-pink-800 dark:text-purple-200">💪 Günün Motivasyonu</h3>
+          <p className="text-pink-700 dark:text-purple-300 italic text-sm font-light">
+            "Her adım, sağlığınıza doğru atılmış bir adımdır."
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Bugün {todaySteps.toLocaleString()} adım attınız, harika! 🚶‍♂️
+          <p className="text-xs text-pink-600 dark:text-purple-400 mt-2 font-light">
+            Bugün {todaySteps.toLocaleString()} adım attınız!
           </p>
         </CardContent>
       </Card>
 
-      {/* Bottom Ad */}
+      {/* Bottom Ad - DÜZELTİLDİ */}
       {!user?.isPremium && (
-        <div className="w-full">
+        <div className="w-full mt-6 pb-4">
           <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
         </div>
       )}
 
-      {/* Technical Note */}
-      <Card className="w-full">
-        <CardContent className="p-4 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            TODO: DeviceMotion API ile gerçek adım sayımı entegre edilecek
-          </p>
-        </CardContent>
-      </Card>
+      {/* Bottom spacing for menu */}
+      <div className="h-4"></div>
     </div>
   );
 };
