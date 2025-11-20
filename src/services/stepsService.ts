@@ -8,14 +8,13 @@ export interface DailySteps {
 
 export class StepsService {
   private static instance: StepsService;
-  private stepCount = 0;
+
+  private stepCount = 0; // Web fallback sayacı
   private isTracking = false;
   private lastAcc: DeviceMotionEventAcceleration | null = null;
 
   static getInstance(): StepsService {
-    if (!this.instance) {
-      this.instance = new StepsService();
-    }
+    if (!this.instance) this.instance = new StepsService();
     return this.instance;
   }
 
@@ -28,12 +27,11 @@ export class StepsService {
   }
 
   // ------------------------------
-  // 2) İzin isteme
+  // 2) Hareket sensörü izni
   // ------------------------------
   async requestPermission(): Promise<"granted" | "denied"> {
     if (!this.isSupported()) return "denied";
 
-    // Native cihaz → izin otomatik olur
     if (Capacitor.isNativePlatform()) return "granted";
 
     // iOS 13+
@@ -51,37 +49,37 @@ export class StepsService {
   }
 
   // ------------------------------
-  // 3) Native adım sayısını çek
+  // 3) Native adım sensöründen veri çekme (Capacitor 6)
   // ------------------------------
-  async getNativeSteps(): Promise<number> {
-    if (!Capacitor.isNativePlatform()) return this.stepCount;
+ async getNativeSteps(): Promise<number> {
+  if (!Capacitor.isNativePlatform()) return this.stepCount;
 
-    try {
-      // @ts-ignore
-      const result = await (Plugins as any).Steps.getSteps();
-      return result.steps ?? 0;
-    } catch {
-      return 0;
-    }
+  try {
+    const result = await (window as any).Capacitor.Plugins.Steps.getSteps();
+    return result.steps ?? 0;
+  } catch {
+    return 0;
   }
+}
 
   // ------------------------------
-  // 4) Adım takibini başlat
+  // 4) Adım takibi başlat
   // ------------------------------
   async startTracking(onStep: (steps: number) => void): Promise<void> {
     if (this.isTracking) return;
     this.isTracking = true;
 
-    // Native cihaz → gerçek sensör
+    // 🔥 Native cihaz → gerçek sensör
     if (Capacitor.isNativePlatform()) {
       setInterval(async () => {
         const steps = await this.getNativeSteps();
         onStep(Math.floor(steps));
       }, 1500);
+
       return;
     }
 
-    // WEB fallback (acceleration)
+    // ---- WEB FALLBACK ----
     window.addEventListener("devicemotion", this.motionHandler(onStep));
   }
 
@@ -113,14 +111,14 @@ export class StepsService {
   }
 
   // ------------------------------
-  // 6) Bugünün adımlarını al
+  // 6) Güncel adım
   // ------------------------------
   getCurrentSteps(): number {
     return this.stepCount;
   }
 
   // ------------------------------
-  // 7) Weekly boş data
+  // 7) Haftalık boş data
   // ------------------------------
   getEmptyWeeklyData(): DailySteps[] {
     const weekly: DailySteps[] = [];
@@ -140,7 +138,7 @@ export class StepsService {
   }
 
   // ------------------------------
-  // 8) Dummy step (web için)
+  // 8) Dummy step (sadece web için)
   // ------------------------------
   generateDummySteps(): number {
     return Math.floor(Math.random() * 8000) + 1000;
