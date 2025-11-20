@@ -5,13 +5,13 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.content.Intent;
 
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import android.content.Intent;
-
+import com.getcapacitor.annotation.PluginMethod;
 
 @CapacitorPlugin(name = "Steps")
 public class StepPlugin extends Plugin implements SensorEventListener {
@@ -19,56 +19,24 @@ public class StepPlugin extends Plugin implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor stepSensor;
 
-    private float initialStepCount = -1;
-    private float todaySteps = 0;
-
     @Override
     public void load() {
         super.load();
 
         // Foreground service başlat
-    Intent i = new Intent(getContext(), StepService.class);
-    getContext().startForegroundService(i);
-
-        Context context = getContext();
-        sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-
-        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-
-        if (stepSensor != null) {
-            sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        }
-
+        Intent i = new Intent(getContext(), StepService.class);
+        getContext().startForegroundService(i);
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        float totalSteps = event.values[0];
-
-        // İlk okuma → referans
-        if (initialStepCount < 0) {
-            initialStepCount = totalSteps;
-        }
-
-        // Bugünkü adım
-        todaySteps = totalSteps - initialStepCount;
-
-        // JS tarafına event göndermek istersen (opsiyonel)
-        JSObject data = new JSObject();
-        data.put("steps", todaySteps);
-
-        notifyListeners("stepUpdate", data);
+    // ------------ JS tarafının çağırdığı method ------------
+    @PluginMethod
+    public void getSteps(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("steps", StepService.getTodaySteps());
+        call.resolve(ret);
     }
 
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-
-    // -------------------------
-    // JS -> Native çağırma methodu
-    // -------------------------
-   public void getSteps(PluginCall call) {
-    JSObject ret = new JSObject();
-    ret.put("steps", StepService.getTodaySteps());
-    call.resolve(ret);
-}
+    // Plugin içi sensör gerekmez → tüm sensör StepService içinde
+    @Override public void onSensorChanged(SensorEvent event) {}
+    @Override public void onAccuracyChanged(Sensor s, int a) {}
 }
