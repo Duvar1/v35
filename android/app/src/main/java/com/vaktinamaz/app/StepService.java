@@ -26,6 +26,9 @@ public class StepService extends Service implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor stepSensor;
 
+    // 🔥 Plugin tarafından okunabilir global değer
+    public static int currentSteps = 0;
+
     private float initialSteps = -1;
     private int todaySteps = 0;
 
@@ -55,7 +58,7 @@ public class StepService extends Service implements SensorEventListener {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "StepService onStartCommand");
-        return START_STICKY; // Öldüğünde yeniden başlasın
+        return START_STICKY;
     }
 
     @Override
@@ -74,6 +77,8 @@ public class StepService extends Service implements SensorEventListener {
 
         if (newSteps != todaySteps) {
             todaySteps = newSteps;
+            currentSteps = newSteps;   //  ← 🔥 Plugin burayı okuyor!
+
             Log.d(TAG, "Updated steps: " + todaySteps);
 
             updateNotification();
@@ -140,7 +145,7 @@ public class StepService extends Service implements SensorEventListener {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null; // bind yok
+        return null;
     }
 
     @Override
