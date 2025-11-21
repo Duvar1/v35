@@ -5,6 +5,7 @@ import KaabaImage from "@/assets/kaaba.png";
 import { QiblaService } from "../services/qiblaService";
 import { AdPlaceholder } from '../components/AdPlaceholder';
 import { useUserStore } from '../store/userStore';
+import { Capacitor } from "@capacitor/core";
 
 export const QiblaPage: React.FC = () => {
   const wheelRef = useRef<HTMLDivElement>(null);
@@ -29,6 +30,32 @@ export const QiblaPage: React.FC = () => {
     }
     setLoading(false);
   };
+// ------------------------------------------------
+// ANDROID KONUM İZNİ (KIBLE İÇİN ZORUNLU)
+// ------------------------------------------------
+useEffect(() => {
+  if (!Capacitor.isNativePlatform()) return;
+
+  navigator.permissions
+    ?.query({ name: "geolocation" as any })
+    .then((res) => {
+      if (res.state === "granted") return;
+
+      navigator.geolocation.getCurrentPosition(
+        () => {},
+        () => {
+          alert("Kıble pusulası için konum izni verilmelidir.");
+        }
+      );
+    })
+    .catch(() => {
+      // fallback
+      navigator.geolocation.getCurrentPosition(
+        () => {},
+        () => alert("Konum izni gerekli.")
+      );
+    });
+}, []);
 
   // ------------------------------------------------
   // GÜNCELLENMİŞ DOĞRU COMPASS / ROTASYON ALGORİTMASI
