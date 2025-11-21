@@ -31,7 +31,7 @@ public class MainActivity extends BridgeActivity {
     };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestStepPermissions();
     }
@@ -114,16 +114,14 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    public void onResume() {
+        super.onResume();  // MUST BE FIRST
         registerReceiver(jsReceiver, new IntentFilter("STEP_UPDATE_JS"));
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
+        unregisterReceiver(jsReceiver);  // NO TRY/CATCH NEEDED
         super.onPause();
-        try {
-            unregisterReceiver(jsReceiver);
-        } catch (Exception ignored) {}
     }
 }
