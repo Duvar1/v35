@@ -2,17 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.vaktinamaz.app">
 
-    <!-- INTERNET -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- Location -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
-    <!-- Compass -->
     <uses-feature android:name="android.hardware.sensor.compass" android:required="false" />
 
-    <!-- Step Counter Permissions -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -25,14 +19,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- Foreground Step Counter -->
         <service
             android:name="com.vaktinamaz.app.StepService"
             android:exported="false"
             android:foregroundServiceType="dataSync|connectedDevice" />
 
-        <!-- Receiver (opsiyonel, sınıf varsa kullan) -->
-        <!--
         <receiver
             android:name="com.vaktinamaz.app.StepReceiver"
             android:enabled="true"
@@ -41,9 +32,7 @@
                 <action android:name="STEP_UPDATE_ACTION" />
             </intent-filter>
         </receiver>
-        -->
 
-        <!-- Main Activity -->
         <activity
             android:name="com.vaktinamaz.app.MainActivity"
             android:exported="true"
