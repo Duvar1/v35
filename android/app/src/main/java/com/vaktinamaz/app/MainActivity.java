@@ -129,4 +129,28 @@ public class MainActivity extends BridgeActivity {
         super.onDestroy();
         Log.d(TAG, "App destroyed");
     }
+    // MainActivity.java'ye ekleyin:
+private BroadcastReceiver jsReceiver = new BroadcastReceiver() {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        if ("STEP_UPDATE_JS".equals(intent.getAction())) {
+            int steps = intent.getIntExtra("steps", 0);
+            sendStepsToJavaScript(steps);
+        }
+    }
+};
+
+@Override
+protected void onResume() {
+    super.onResume();
+    // Receiver'ı kaydet
+    registerReceiver(jsReceiver, new IntentFilter("STEP_UPDATE_JS"));
+}
+
+@Override
+protected void onPause() {
+    super.onPause();
+    // Receiver'ı temizle
+    unregisterReceiver(jsReceiver);
+}
 }
