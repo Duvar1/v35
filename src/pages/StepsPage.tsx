@@ -47,6 +47,16 @@ export const StepsPage: React.FC = () => {
       setWeeklySteps(emptyWeek);
     }
   }, []);
+useEffect(() => {
+  const fn = (e: any) => {
+    updateTodaySteps(e.detail.steps);
+  };
+
+  window.addEventListener("stepUpdate", fn);
+  return () => window.removeEventListener("stepUpdate", fn);
+}, []);
+
+  
 
   const handleStartTracking = async () => {
     if (!isSupported) {

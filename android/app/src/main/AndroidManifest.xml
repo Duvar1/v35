@@ -1,38 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Location permissions for Qibla Compass -->
+    <!-- 🌍 Network -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 📍 Konum (Kıble için) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Compass sensor (optional but recommended) -->
+    <!-- 🧭 Compass sensörü -->
     <uses-feature android:name="android.hardware.sensor.compass" android:required="false" />
 
-    <!-- Step Counter Permissions -->
+    <!-- 🚶‍♂️ Adım Sayar izinleri -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    
-    <!-- For Android 9+ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".MainApplication"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- Step Service -->
+        <!-- 🟦 Step Counter Foreground Service -->
         <service
             android:name=".StepService"
-            android:enabled="true"
             android:exported="false"
+            android:enabled="true"
             android:foregroundServiceType="health" />
 
-        <!-- Step Receiver -->
+        <!-- 🟪 Step Receiver (Service → JS köprüsü) -->
         <receiver
             android:name=".StepReceiver"
             android:enabled="true"
@@ -42,34 +43,33 @@
             </intent-filter>
         </receiver>
 
+        <!-- 🟨 Capacitor Activity (UI) -->
         <activity
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
-            android:name=".MainApplication"
-            android:label="@string/title_activity_main"
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/AppTheme.NoActionBarLaunch"
-            android:launchMode="singleTask"
-            android:exported="true">
+            android:label="@string/title_activity_main"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
 
+        <!-- 📦 FileProvider (Paylaşım için) -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
+
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
+                android:resource="@xml/file_paths" />
         </provider>
 
     </application>
-
-    <!-- Permissions -->
-    <uses-permission android:name="android.permission.INTERNET" />
 
 </manifest>
