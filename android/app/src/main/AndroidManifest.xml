@@ -17,7 +17,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
 
     <application
-        android:name=".MainActivity"
+        android:name=".MainApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -44,7 +44,7 @@
 
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
-            android:name=".MainActivity"
+            android:name=".MainApplication"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
