@@ -1,24 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.vaktinamaz.app">
 
-    <!-- 🌍 Network -->
+    <!-- INTERNET -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- 📍 Konum (Kıble için) -->
+    <!-- Location -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- 🧭 Compass sensörü -->
+    <!-- Compass -->
     <uses-feature android:name="android.hardware.sensor.compass" android:required="false" />
 
-    <!-- 🚶‍♂️ Adım Sayar izinleri -->
+    <!-- Step Counter Permissions -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:name=".MainApplication"
         android:allowBackup="true"
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
@@ -26,27 +25,27 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- 🟦 Step Counter Foreground Service -->
+        <!-- Foreground Step Counter -->
         <service
-    android:name=".StepService"
-    android:exported="false"
-    android:foregroundServiceType="microphone|location|dataSync|connectedDevice">
-</service>
+            android:name="com.vaktinamaz.app.StepService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync|connectedDevice" />
 
-
-        <!-- 🟪 Step Receiver (Service → JS köprüsü) -->
+        <!-- Receiver (opsiyonel, sınıf varsa kullan) -->
+        <!--
         <receiver
-            android:name=".StepReceiver"
+            android:name="com.vaktinamaz.app.StepReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
                 <action android:name="STEP_UPDATE_ACTION" />
             </intent-filter>
         </receiver>
+        -->
 
-        <!-- 🟨 Capacitor Activity (UI) -->
+        <!-- Main Activity -->
         <activity
-            android:name=".MainActivity"
+            android:name="com.vaktinamaz.app.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.NoActionBarLaunch"
@@ -58,18 +57,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- 📦 FileProvider (Paylaşım için) -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
 
     </application>
 
