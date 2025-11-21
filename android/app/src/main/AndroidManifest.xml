@@ -28,10 +28,11 @@
 
         <!-- 🟦 Step Counter Foreground Service -->
         <service
-            android:name=".StepService"
-            android:exported="false"
-            android:enabled="true"
-            android:foregroundServiceType="health" />
+    android:name=".StepService"
+    android:exported="false"
+    android:foregroundServiceType="microphone|location|dataSync|connectedDevice">
+</service>
+
 
         <!-- 🟪 Step Receiver (Service → JS köprüsü) -->
         <receiver
