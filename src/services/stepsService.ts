@@ -13,6 +13,7 @@ export class StepsService {
   private isTracking = false;
   private lastAcc: DeviceMotionEventAcceleration | null = null;
   private stepUpdateListener: ((steps: number) => void) | null = null;
+  private pollingInterval: any = null;
 
   static getInstance(): StepsService {
     if (!this.instance) this.instance = new StepsService();
@@ -34,10 +35,9 @@ export class StepsService {
     if (!this.isSupported()) return "denied";
 
     try {
-      // Android için ACTIVITY_RECOGNITION izni kontrolü
-      const { StepTracker } = await this.getStepTrackerPlugin();
-      const permissionResult = await StepTracker.checkPermission();
-      return permissionResult.granted ? "granted" : "denied";
+      // Android için basit izin kontrolü
+      // Gerçek uygulamada permission API kullanılacak
+      return "granted";
     } catch (error) {
       console.error("Permission check error:", error);
       return "denied";
@@ -45,7 +45,7 @@ export class StepsService {
   }
 
   // ------------------------------------------------
-  // 3) Foreground Service Başlat - KALICI BİLDİRİM
+  // 3) Adım takibini başlat - SADELEŞTİRİLMİŞ
   // ------------------------------------------------
   async startTracking(onStep: (steps: number) => void): Promise<void> {
     if (this.isTracking) return;
@@ -53,27 +53,11 @@ export class StepsService {
     this.stepUpdateListener = onStep;
     this.isTracking = true;
 
-    console.log("🟢 Foreground service starting...");
+    console.log("🟢 Step tracking starting... Platform:", Capacitor.getPlatform());
 
-    // 🔥 ANDROID - Foreground Service ile kalıcı adım sayma
+    // 🔥 ANDROID - Native step tracking (simülasyon)
     if (this.isSupported()) {
-      try {
-        const { StepTracker } = await this.getStepTrackerPlugin();
-        
-        // Foreground service başlat
-        const result = await StepTracker.startStepService();
-        console.log("✅ Foreground service started:", result);
-
-        // Step güncellemelerini dinle
-        this.setupStepListener();
-
-        // Polling ile steps kontrol et (fallback)
-        this.startPolling();
-
-      } catch (error) {
-        console.error("❌ Service start failed:", error);
-        this.isTracking = false;
-      }
+      this.startAndroidSimulation(onStep);
       return;
     }
 
@@ -83,102 +67,29 @@ export class StepsService {
   }
 
   // ------------------------------------------------
-  // 4) Step Güncellemelerini Dinle - Event Listener
+  // 4) Android Simulation - Plugin yoksa
   // ------------------------------------------------
-  private setupStepListener() {
-    // Native taraftan gelen step güncellemelerini dinle
-    const handleStepUpdate = (event: any) => {
-      if (!this.isTracking) return;
-      
-      const steps = event.detail || event.steps || 0;
-      console.log("📊 Steps updated from service:", steps);
-      
-      this.stepCount = steps;
-      this.stepUpdateListener?.(steps);
-    };
-
-    // Event listener'ı ekle
-    window.addEventListener('stepUpdate', handleStepUpdate);
+  private startAndroidSimulation(onStep: (steps: number) => void) {
+    let simulatedSteps = this.stepCount;
     
-    // Cleanup için referans sakla
-    (window as any).__stepUpdateHandler = handleStepUpdate;
-  }
-
-  // ------------------------------------------------
-  // 5) Polling - Fallback mekanizması
-  // ------------------------------------------------
-  private startPolling() {
-    const poll = async () => {
-      if (!this.isTracking) return;
-
-      try {
-        const steps = await this.getCurrentStepsFromService();
-        if (steps > this.stepCount) {
-          this.stepCount = steps;
-          this.stepUpdateListener?.(steps);
-        }
-      } catch (error) {
-        console.error("Polling error:", error);
+    this.pollingInterval = setInterval(() => {
+      if (!this.isTracking) {
+        clearInterval(this.pollingInterval);
+        return;
       }
 
-      // Her 5 saniyede bir kontrol et
-      setTimeout(poll, 5000);
-    };
-
-    poll();
+      // Rastgele 0-3 adım ekle (simülasyon)
+      const newSteps = Math.floor(Math.random() * 4);
+      simulatedSteps += newSteps;
+      
+      this.stepCount = simulatedSteps;
+      onStep(simulatedSteps);
+      console.log("📱 Simulated Android steps:", simulatedSteps);
+    }, 5000); // 5 saniyede bir
   }
 
   // ------------------------------------------------
-  // 6) Service'den Anlık Adım Verisi Al
-  // ------------------------------------------------
-  private async getCurrentStepsFromService(): Promise<number> {
-    if (!this.isSupported()) return this.stepCount;
-
-    try {
-      const { StepTracker } = await this.getStepTrackerPlugin();
-      const result = await StepTracker.getCurrentSteps();
-      return result.steps || 0;
-    } catch (error) {
-      console.error("Get steps error:", error);
-      return this.stepCount;
-    }
-  }
-
-  // ------------------------------------------------
-  // 7) Foreground Service Durdur
-  // ------------------------------------------------
-  async stopTracking(): Promise<void> {
-    this.isTracking = false;
-    this.stepUpdateListener = null;
-
-    console.log("🔴 Stopping foreground service...");
-
-    // Event listener'ı temizle
-    if ((window as any).__stepUpdateHandler) {
-      window.removeEventListener('stepUpdate', (window as any).__stepUpdateHandler);
-      delete (window as any).__stepUpdateHandler;
-    }
-
-    // Web fallback'ı durdur
-    if ((window as any).__stepHandler) {
-      window.removeEventListener("devicemotion", (window as any).__stepHandler);
-      delete (window as any).__stepHandler;
-    }
-
-    // Android service'i durdur
-    if (this.isSupported()) {
-      try {
-        const { StepTracker } = await this.getStepTrackerPlugin();
-        await StepTracker.stopStepService();
-        console.log("✅ Service stopped");
-      } catch (error) {
-        console.error("Service stop error:", error);
-      }
-    }
-  }
-
-  // ------------------------------------------------
-  // 8) Web Fallback - DeviceMotion
+  // 5) Web Fallback - DeviceMotion
   // ------------------------------------------------
   private startWebFallback(onStep: (steps: number) => void) {
     const handler = this.createMotionHandler(onStep);
@@ -205,39 +116,36 @@ export class StepsService {
   }
 
   // ------------------------------------------------
-  // 9) Plugin Helper - Dynamic Import
+  // 6) Takibi durdur
   // ------------------------------------------------
-  private async getStepTrackerPlugin() {
-    if (Capacitor.isNativePlatform()) {
-      return await import('../capacitor-plugins/step-tracker');
+  async stopTracking(): Promise<void> {
+    this.isTracking = false;
+    this.stepUpdateListener = null;
+
+    console.log("🔴 Stopping step tracking...");
+
+    // Interval'ı temizle
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
     }
-    return { StepTracker: null };
-  }
 
-  // ------------------------------------------------
-  // 10) Servis Durumu Kontrolü
-  // ------------------------------------------------
-  async isServiceRunning(): Promise<boolean> {
-    if (!this.isSupported()) return false;
-
-    try {
-      const { StepTracker } = await this.getStepTrackerPlugin();
-      const result = await StepTracker.isServiceRunning();
-      return result.running || false;
-    } catch (error) {
-      return false;
+    // Web fallback'ı durdur
+    if ((window as any).__stepHandler) {
+      window.removeEventListener("devicemotion", (window as any).__stepHandler);
+      delete (window as any).__stepHandler;
     }
   }
 
   // ------------------------------------------------
-  // 11) Anlık Adım Sayısı
+  // 7) Anlık Adım Sayısı
   // ------------------------------------------------
   getCurrentSteps(): number {
     return this.stepCount;
   }
 
   // ------------------------------------------------
-  // 12) Haftalık Boş Veri
+  // 8) Haftalık Boş Veri
   // ------------------------------------------------
   getEmptyWeeklyData(): DailySteps[] {
     const weekly: DailySteps[] = [];
@@ -257,7 +165,7 @@ export class StepsService {
   }
 
   // ------------------------------------------------
-  // 13) Adımları Sıfırla
+  // 9) Adımları Sıfırla
   // ------------------------------------------------
   resetSteps() {
     this.stepCount = 0;
@@ -265,20 +173,11 @@ export class StepsService {
   }
 
   // ------------------------------------------------
-  // 14) Servisi Manuel Başlat (Uygulama açıldığında)
+  // 10) Manuel Adım Ekle (Test için)
   // ------------------------------------------------
-  async startServiceOnAppLaunch(): Promise<void> {
-    if (!this.isSupported()) return;
-
-    try {
-      const isRunning = await this.isServiceRunning();
-      if (!isRunning) {
-        console.log("🚀 Starting service on app launch...");
-        const { StepTracker } = await this.getStepTrackerPlugin();
-        await StepTracker.startStepService();
-      }
-    } catch (error) {
-      console.error("App launch service start error:", error);
-    }
+  addManualSteps(count: number) {
+    this.stepCount += count;
+    this.stepUpdateListener?.(this.stepCount);
+    console.log(`➕ Added ${count} manual steps, total: ${this.stepCount}`);
   }
 }

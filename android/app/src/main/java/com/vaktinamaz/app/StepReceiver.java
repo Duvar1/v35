@@ -1,4 +1,4 @@
-package com.vaktinamaz.app;  // AYNI PAKET
+package com.vaktinamaz.app;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -8,7 +8,6 @@ import android.util.Log;
 public class StepReceiver extends BroadcastReceiver {
     private static final String TAG = "StepReceiver";
 
-    // Adım güncellemelerini dinleyecek
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent == null) return;
@@ -20,20 +19,25 @@ public class StepReceiver extends BroadcastReceiver {
             int steps = intent.getIntExtra("steps", 0);
             Log.d(TAG, "Steps updated: " + steps);
             
-            // Burada WebView'e veri gönderebilirsin
-            sendStepsToWebView(context, steps);
+            // MainActivity'ye gönder
+            sendStepsToMainActivity(context, steps);
         }
     }
 
-    private void sendStepsToWebView(Context context, int steps) {
+    private void sendStepsToMainActivity(Context context, int steps) {
         try {
-            // Capacitor bridge üzerinden JavaScript'e mesaj gönder
             if (context instanceof MainActivity) {
                 MainActivity activity = (MainActivity) context;
-                activity.sendStepsToJavaScript(steps);
+                activity.onStepUpdate(steps);
+            } else {
+                // Context MainActivity değilse, intent ile başlat
+                Intent activityIntent = new Intent(context, MainActivity.class);
+                activityIntent.putExtra("steps", steps);
+                activityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(activityIntent);
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error sending to WebView: " + e.getMessage());
+            Log.e(TAG, "Error sending to MainActivity: " + e.getMessage());
         }
     }
 }
