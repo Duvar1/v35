@@ -23,7 +23,8 @@ public class MainActivity extends BridgeActivity {
     private final BroadcastReceiver jsReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if ("STEP_UPDATE_ACTION".equals(intent.getAction())) {  // ✔ Düzeltilmiş
+            if ("STEP_UPDATE_JS".equals(intent.getAction()))
+ {  // ✔ Düzeltilmiş
                 int steps = intent.getIntExtra("steps", 0);
                 sendStepsToJS(steps);
             }
@@ -115,8 +116,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onResume() {
-        super.onResume();  
-        registerReceiver(jsReceiver, new IntentFilter("STEP_UPDATE_ACTION")); // ✔ Düzeltilmiş
+        super.onResume();  registerReceiver(jsReceiver, new IntentFilter("STEP_UPDATE_JS"));
+
+         // ✔ Düzeltilmiş
     }
 
     @Override
