@@ -3,6 +3,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
+import { registerPlugin } from '@capacitor/core';
+import { Permissions } from '@capacitor/permissions';
 
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
@@ -15,13 +17,14 @@ import { InvitePage } from './pages/InvitePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BottomNavigation } from './components/BottomNavigation';
 
-import { StepCounter } from './stepCounter';   // ✔ DOĞRU IMPORT
+// 📌 StepCounter Plugin (Capacitor 5)
+const StepCounter = registerPlugin('StepCounter');
 
 const queryClient = new QueryClient();
 
 const App = () => {
 
-  // Tema yükleme
+  // 🌙 Tema yükleme
   useEffect(() => {
     const root = window.document.documentElement;
 
@@ -41,20 +44,32 @@ const App = () => {
     root.classList.add(theme === 'dark' ? 'dark' : 'light');
   }, []);
 
-  // 🔥 StepCounter servisini başlat
+  // 👣 ADIM SAYAR — İzin iste + servisi başlat + dinle
   useEffect(() => {
-    try {
-      StepCounter.startService()
-        .then(() => console.log("StepCounter service başlatıldı."))
-        .catch(err => console.warn("StepCounter hata:", err));
+    const initStepCounter = async () => {
+      try {
+        // 1️⃣ ACTIVITY_RECOGNITION izni iste
+        const perm = await Permissions.request({
+          permissions: ['activityRecognition']
+        });
 
-      window.addEventListener("stepUpdate", (event: any) => {
-        console.log("Yeni adım:", event.detail.steps);
-      });
+        console.log("İzin sonucu:", perm);
 
-    } catch (err) {
-      console.warn("StepCounter yüklenemedi:", err);
-    }
+        // 2️⃣ StepService'i başlat
+        await StepCounter.startService();
+        console.log("StepCounter service başladı.");
+
+        // 3️⃣ Android servis eventlerini dinle
+        window.addEventListener("stepUpdate", (event: any) => {
+          console.log("Yeni adım:", event.detail.steps);
+        });
+
+      } catch (err) {
+        console.warn("StepCounter yüklenemedi:", err);
+      }
+    };
+
+    initStepCounter();
   }, []);
 
   return (
@@ -63,6 +78,7 @@ const App = () => {
         <Toaster />
         <BrowserRouter>
           <div className="min-h-screen bg-background">
+
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/prayer-times" element={<PrayerTimesPage />} />
