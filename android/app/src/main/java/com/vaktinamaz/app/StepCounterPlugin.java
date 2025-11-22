@@ -2,6 +2,7 @@ package com.vaktinamaz.app;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -9,10 +10,16 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
 
 import androidx.core.content.ContextCompat;
 
-@CapacitorPlugin(name = "StepCounter")
+@CapacitorPlugin(
+    name = "StepCounter",
+    permissions = {
+        @Permission(strings = { "android.permission.ACTIVITY_RECOGNITION" }, alias = "activity")
+    }
+)
 public class StepCounterPlugin extends Plugin {
 
     private static StepCounterPlugin instance;
@@ -23,57 +30,26 @@ public class StepCounterPlugin extends Plugin {
         super.load();
         instance = this;
         Log.d(TAG, "Plugin yüklendi");
-        
-        // İzin kontrolü ve servis başlatma
-        if (hasActivityRecognitionPermission()) {
-            startStepService();
-        }
-        // İzin yoksa React tarafında isteyeceğiz
     }
 
     private boolean hasActivityRecognitionPermission() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            return ContextCompat.checkSelfPermission(getContext(), 
-                android.Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return ContextCompat.checkSelfPermission(
+                getContext(), 
+                android.Manifest.permission.ACTIVITY_RECOGNITION
+            ) == PackageManager.PERMISSION_GRANTED;
         }
-        return true; // Android 10 altında izin gerekmez
-    }
-
-    private void startStepService() {
-        try {
-            Intent serviceIntent = new Intent(getContext(), StepService.class);
-            getContext().startService(serviceIntent);
-            Log.d(TAG, "Adım servisi başlatıldı");
-        } catch (Exception e) {
-            Log.e(TAG, "Servis başlatma hatası: " + e.getMessage());
-        }
+        return true;
     }
 
     @PluginMethod
-    public void startService(PluginCall call) {
-        try {
-            startStepService();
+    public void requestPermissions(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            requestPermissionForAlias("activity", call, "permissionCallback");
+        } else {
             JSObject result = new JSObject();
-            result.put("success", true);
-            result.put("message", "Adım sayar servisi başlatıldı");
+            result.put("granted", true);
             call.resolve(result);
-        } catch (Exception e) {
-            call.reject("Servis başlatılamadı: " + e.getMessage());
-        }
-    }
-
-    @PluginMethod
-    public void stopService(PluginCall call) {
-        try {
-            Intent serviceIntent = new Intent(getContext(), StepService.class);
-            getContext().stopService(serviceIntent);
-            
-            JSObject result = new JSObject();
-            result.put("success", true);
-            result.put("message", "Adım sayar servisi durduruldu");
-            call.resolve(result);
-        } catch (Exception e) {
-            call.reject("Servis durdurulamadı: " + e.getMessage());
         }
     }
 
@@ -82,6 +58,65 @@ public class StepCounterPlugin extends Plugin {
         JSObject result = new JSObject();
         result.put("granted", hasActivityRecognitionPermission());
         call.resolve(result);
+    }
+
+    @PluginMethod
+    public void startService(PluginCall call) {
+        try {
+            if (!hasActivityRecognitionPermission()) {
+                call.reject("İzin gerekli. Önce requestPermissions() çağırın.");
+                return;
+            }
+
+            Intent serviceIntent = new Intent(getContext(), StepService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getContext().startForegroundService(serviceIntent);
+            } else {
+                getContext().startService(serviceIntent);
+            }
+            
+            Log.d(TAG, "Adım servisi başlatıldı");
+            
+            JSObject result = new JSObject();
+            result.put("success", true);
+            result.put("message", "Adım sayar servisi başlatıldı");
+            call.resolve(result);
+        } catch (Exception e) {
+            Log.e(TAG, "Servis başlatma hatası: " + e.getMessage());
+            call.reject("Servis başlatılamadı: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void stopService(PluginCall call) {
+        try {
+            Intent serviceIntent = new Intent(getContext(), StepService.class);
+            boolean stopped = getContext().stopService(serviceIntent);
+            
+            JSObject result = new JSObject();
+            result.put("success", stopped);
+            result.put("message", stopped ? "Adım sayar servisi durduruldu" : "Servis zaten durdurulmuş");
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Servis durdurulamadı: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void resetSteps(PluginCall call) {
+        try {
+            getContext().getSharedPreferences("StepCounterPrefs", 0)
+                .edit()
+                .remove("initial_steps")
+                .apply();
+            
+            JSObject result = new JSObject();
+            result.put("success", true);
+            result.put("message", "Adımlar sıfırlandı");
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Sıfırlama hatası: " + e.getMessage());
+        }
     }
 
     public static void sendStepToJS(int steps) {
@@ -96,3 +131,4 @@ public class StepCounterPlugin extends Plugin {
         }
     }
 }
+

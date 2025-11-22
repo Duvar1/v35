@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Footprints, Award, CalendarDays, Target } from 'lucide-react';
+import { Footprints, Award, CalendarDays, Target, Play, Square, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { StepChart } from '../components/StepChart';
 import { AdPlaceholder } from '../components/AdPlaceholder';
 
 import { useStepsStore } from '../store/stepsStore';
 import { useUserStore } from '../store/userStore';
+import { stepService } from '../services/stepService';
+import { Capacitor } from '@capacitor/core';
 
 export const StepsPage: React.FC = () => {
   const {
@@ -18,26 +21,31 @@ export const StepsPage: React.FC = () => {
     todaySteps,
     weeklySteps,
     monthlySteps,
+    isSupported,
+    permission,
+    serviceStarted,
     setDailyGoal,
-    updateTodaySteps,
     setWeeklySteps,
-    setSupported
   } = useStepsStore();
 
   const { user } = useUserStore();
   const [newGoal, setNewGoal] = useState(dailyGoal.toString());
   const [showGoalDialog, setShowGoalDialog] = useState(false);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [isServiceRunning, setIsServiceRunning] = useState(serviceStarted);
+  const [loading, setLoading] = useState(false);
 
   // 📌 Bu ayın toplam adımı
   const monthKey = new Date().toISOString().slice(0, 7);
   const monthlyTotal = monthlySteps[monthKey] || 0;
 
-  // 📌 Cihaz destekliyor mu?
+  // 📌 İlk yükleme - Otomatik başlat veya izin iste
   useEffect(() => {
-    const isAndroid = /android/i.test(navigator.userAgent);
-    setSupported(isAndroid);
+    if (Capacitor.isNativePlatform()) {
+      initService();
+    }
 
-    // Haftalık veri yoksa oluştur
+    // Haftalık veri oluştur
     if (weeklySteps.length === 0) {
       const today = new Date();
       const empty: any[] = [];
@@ -45,7 +53,6 @@ export const StepsPage: React.FC = () => {
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-
         empty.push({
           date: d.toISOString().split("T")[0],
           steps: 0,
@@ -54,34 +61,83 @@ export const StepsPage: React.FC = () => {
 
       setWeeklySteps(empty);
     }
+
+    // Cleanup
+    return () => {
+      stepService.cleanup();
+    };
   }, []);
 
-  // 📌 Adım güncellemelerini dinle
-  useEffect(() => {
-    const handleStepUpdate = (event: any) => {
-      try {
-        const steps = event.detail.steps;
-        console.log('Yeni adım:', steps);
-        updateTodaySteps(steps);
-        
-        // Haftalık veriyi güncelle
-        const today = new Date().toISOString().split('T')[0];
-        const updatedWeekly = weeklySteps.map(day => 
-          day.date === today ? { ...day, steps } : day
-        );
-        setWeeklySteps(updatedWeekly);
-
-      } catch (error) {
-        console.error('Adım güncelleme hatası:', error);
+  const initService = async () => {
+    setLoading(true);
+    try {
+      const success = await stepService.init();
+      setIsServiceRunning(success);
+      
+      // İzin yoksa dialog göster
+      if (!success && permission === 'prompt') {
+        setTimeout(() => setShowPermissionDialog(true), 500);
       }
-    };
+    } catch (error) {
+      console.error('Servis başlatma hatası:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    window.addEventListener("stepUpdate", handleStepUpdate);
-    
-    return () => {
-      window.removeEventListener("stepUpdate", handleStepUpdate);
-    };
-  }, [weeklySteps, updateTodaySteps, setWeeklySteps]);
+  const handlePermissionRequest = async () => {
+    setShowPermissionDialog(false);
+    setLoading(true);
+    try {
+      const success = await stepService.requestPermissionAndStart();
+      setIsServiceRunning(success);
+      
+      if (!success) {
+        alert('İzin reddedildi. Ayarlar > Uygulamalar > İzinler\'den manuel olarak izin verebilirsiniz.');
+      }
+    } catch (error) {
+      alert('Bir hata oluştu: ' + error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartService = async () => {
+    setLoading(true);
+    try {
+      await stepService.start();
+      setIsServiceRunning(true);
+    } catch (error) {
+      alert('Servis başlatılamadı: ' + error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStopService = async () => {
+    setLoading(true);
+    try {
+      await stepService.stop();
+      setIsServiceRunning(false);
+    } catch (error) {
+      alert('Servis durdurulamadı: ' + error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetSteps = async () => {
+    if (confirm('Bugünkü adımları sıfırlamak istediğinize emin misiniz?')) {
+      setLoading(true);
+      try {
+        await stepService.reset();
+      } catch (error) {
+        alert('Sıfırlama hatası: ' + error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   const handleGoalUpdate = () => {
     const goal = parseInt(newGoal) || 10000;
@@ -108,6 +164,65 @@ export const StepsPage: React.FC = () => {
         <div className="w-full">
           <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
         </div>
+      )}
+
+      {/* İzin Reddedildi Uyarısı */}
+      {permission === 'denied' && Capacitor.isNativePlatform() && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Adım sayar izni reddedildi. Ayarlar &gt; Uygulamalar &gt; İzinler'den "Fiziksel Aktivite" iznini aktif edin.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Service Controls */}
+      {Capacitor.isNativePlatform() && permission === 'granted' && (
+        <Card className="bg-gradient-to-r from-blue-100/80 to-cyan-100/80 dark:from-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border border-blue-200/50 dark:border-blue-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-light text-blue-800 dark:text-blue-200">Adım Sayar Servisi</h3>
+                <p className="text-xs text-blue-600 dark:text-blue-300">
+                  {isServiceRunning ? '✅ Arka planda çalışıyor' : '⏸️ Durduruldu'}
+                </p>
+              </div>
+              
+              <div className="flex gap-2">
+                {!isServiceRunning ? (
+                  <Button 
+                    onClick={handleStartService} 
+                    disabled={loading}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Play className="h-4 w-4 mr-1" />
+                    Başlat
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleStopService} 
+                    disabled={loading}
+                    size="sm"
+                    variant="destructive"
+                  >
+                    <Square className="h-4 w-4 mr-1" />
+                    Durdur
+                  </Button>
+                )}
+                
+                <Button 
+                  onClick={handleResetSteps}
+                  disabled={loading}
+                  size="sm"
+                  variant="outline"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Today's Steps */}
@@ -197,13 +312,40 @@ export const StepsPage: React.FC = () => {
         </div>
       )}
 
+      {/* İzin İste Dialog */}
+      <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>🚶‍♂️ Adım Sayar İzni</DialogTitle>
+            <DialogDescription>
+              Adımlarınızı sayabilmek için "Fiziksel Aktivite" izni gerekiyor. Bu izin sayesinde uygulama arka planda çalışırken bile adımlarınızı takip edebilir.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              ✅ Arka planda sürekli çalışır<br/>
+              ✅ Telefon yeniden başlatılınca otomatik başlar<br/>
+              ✅ Pil dostu teknoloji
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPermissionDialog(false)}>
+              Şimdi Değil
+            </Button>
+            <Button onClick={handlePermissionRequest}>
+              İzin Ver
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Hedef Dialog */}
       <Dialog open={showGoalDialog} onOpenChange={setShowGoalDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Günlük Adım Hedefi</DialogTitle>
             <DialogDescription>
-              Günlük adım hedefinizi ayarlayın
+              Günlük adım hedefinizi ayarlayın (1000-50000)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
