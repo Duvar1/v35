@@ -55,7 +55,7 @@ public class StepService extends Service implements SensorEventListener {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Adım Sayar Çalışıyor")
                 .setContentText("Toplam Adım: 0")
-                .setSmallIcon(R.drawable.ic_launcher)
+                .setSmallIcon(R.mipmap.ic_launcher)  // ✔ DOĞRU
                 .build();
 
         startForeground(1, notification);
@@ -74,7 +74,7 @@ public class StepService extends Service implements SensorEventListener {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Adım Sayar")
                 .setContentText("Toplam Adım: " + steps)
-                .setSmallIcon(R.drawable.ic_launcher)
+                .setSmallIcon(R.mipmap.ic_launcher)  // ❗ BURASI DÜZELTİLDİ
                 .build();
 
         NotificationManager manager = getSystemService(NotificationManager.class);
