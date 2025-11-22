@@ -48,7 +48,7 @@ public class StepService extends Service implements SensorEventListener {
             sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI);
             Log.d(TAG, "Sensör dinleyici kaydedildi");
         } else {
-            Log.e(TAG, "Adım sensörü bulunamadı!");
+            Log.e(TAG, "Adım sensörü bulunamadı! Cihaz desteklemiyor olabilir.");
             stopSelf();
         }
         return START_STICKY;
@@ -126,20 +126,4 @@ public class StepService extends Service implements SensorEventListener {
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-      Log.d(TAG, "Servis başlatıldı");
-    
-      if (stepSensor != null) {
-          sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI);
-          Log.d(TAG, "Sensör dinleyici kaydedildi");
-      } else {
-          Log.e(TAG, "Adım sensörü bulunamadı! Cihaz desteklemiyor olabilir.");
-          // Sensör yoksa servisi durdur
-          stopSelf();
-      }
-      return START_STICKY;
-}
-
 }

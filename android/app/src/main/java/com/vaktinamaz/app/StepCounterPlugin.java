@@ -93,11 +93,8 @@ public class StepCounterPlugin extends Plugin {
         }
     }
 
-    // İzin sonucu
-    @Override
-    public void handleOnRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.handleOnRequestPermissionsResult(requestCode, permissions, grantResults);
-        
+    // İzin sonucu - OVERRIDE KALDIRILDI (Capacitor otomatik handle ediyor)
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == ACTIVITY_RECOGNITION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // İzin verildi, servisi başlat
