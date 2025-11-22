@@ -4,8 +4,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import { registerPlugin } from '@capacitor/core';
-import { Permissions } from '@capacitor/permissions';
 
+// StepCounter plugin tipi
+interface StepCounterPlugin {
+  startService(): Promise<void>;
+  stopService(): Promise<void>;
+}
+
+// Plugin register
+const StepCounter = registerPlugin<StepCounterPlugin>('StepCounter');
+
+// Pages
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import { HomePage } from './pages/HomePage';
@@ -17,17 +26,12 @@ import { InvitePage } from './pages/InvitePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BottomNavigation } from './components/BottomNavigation';
 
-// 📌 StepCounter Plugin (Capacitor 5)
-const StepCounter = registerPlugin('StepCounter');
-
 const queryClient = new QueryClient();
 
 const App = () => {
-
-  // 🌙 Tema yükleme
+  // Tema
   useEffect(() => {
     const root = window.document.documentElement;
-
     const savedTheme = localStorage.getItem('vaktinamaz-settings-v1');
     let theme = 'light';
 
@@ -35,31 +39,20 @@ const App = () => {
       try {
         const settings = JSON.parse(savedTheme);
         theme = settings.state?.theme || 'light';
-      } catch (error) {
-        console.warn('Failed to parse theme from localStorage:', error);
-      }
+      } catch {}
     }
 
     root.classList.remove('light', 'dark');
     root.classList.add(theme === 'dark' ? 'dark' : 'light');
   }, []);
 
-  // 👣 ADIM SAYAR — İzin iste + servisi başlat + dinle
+  // Step Service Başlat
   useEffect(() => {
-    const initStepCounter = async () => {
+    const start = async () => {
       try {
-        // 1️⃣ ACTIVITY_RECOGNITION izni iste
-        const perm = await Permissions.request({
-          permissions: ['activityRecognition']
-        });
-
-        console.log("İzin sonucu:", perm);
-
-        // 2️⃣ StepService'i başlat
         await StepCounter.startService();
-        console.log("StepCounter service başladı.");
+        console.log("StepCounter service başlatıldı.");
 
-        // 3️⃣ Android servis eventlerini dinle
         window.addEventListener("stepUpdate", (event: any) => {
           console.log("Yeni adım:", event.detail.steps);
         });
@@ -69,7 +62,7 @@ const App = () => {
       }
     };
 
-    initStepCounter();
+    start();
   }, []);
 
   return (
@@ -78,7 +71,6 @@ const App = () => {
         <Toaster />
         <BrowserRouter>
           <div className="min-h-screen bg-background">
-
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/prayer-times" element={<PrayerTimesPage />} />
@@ -89,7 +81,6 @@ const App = () => {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-
             <BottomNavigation />
           </div>
         </BrowserRouter>
