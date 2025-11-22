@@ -3,6 +3,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
+
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import { HomePage } from './pages/HomePage';
@@ -14,17 +15,19 @@ import { InvitePage } from './pages/InvitePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BottomNavigation } from './components/BottomNavigation';
 
+import { StepCounter } from './stepCounter';   // ✔ DOĞRU IMPORT
+
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Apply theme on mount and when it changes
+
+  // Tema yükleme
   useEffect(() => {
     const root = window.document.documentElement;
-    
-    // Get theme from localStorage or default to 'light'
+
     const savedTheme = localStorage.getItem('vaktinamaz-settings-v1');
     let theme = 'light';
-    
+
     if (savedTheme) {
       try {
         const settings = JSON.parse(savedTheme);
@@ -33,13 +36,24 @@ const App = () => {
         console.warn('Failed to parse theme from localStorage:', error);
       }
     }
-    
+
     root.classList.remove('light', 'dark');
-    
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.add('light');
+    root.classList.add(theme === 'dark' ? 'dark' : 'light');
+  }, []);
+
+  // 🔥 StepCounter servisini başlat
+  useEffect(() => {
+    try {
+      StepCounter.startService()
+        .then(() => console.log("StepCounter service başlatıldı."))
+        .catch(err => console.warn("StepCounter hata:", err));
+
+      window.addEventListener("stepUpdate", (event: any) => {
+        console.log("Yeni adım:", event.detail.steps);
+      });
+
+    } catch (err) {
+      console.warn("StepCounter yüklenemedi:", err);
     }
   }, []);
 
@@ -59,6 +73,7 @@ const App = () => {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+
             <BottomNavigation />
           </div>
         </BrowserRouter>

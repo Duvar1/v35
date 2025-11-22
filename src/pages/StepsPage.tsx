@@ -1,16 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Footprints, Target, Play, Pause, Settings, Award, CalendarDays } from 'lucide-react';
+import { Footprints, Award, CalendarDays } from 'lucide-react';
 
 import { StepChart } from '../components/StepChart';
 import { AdPlaceholder } from '../components/AdPlaceholder';
 
 import { useStepsStore } from '../store/stepsStore';
 import { useUserStore } from '../store/userStore';
-import { StepsService } from '../services/stepsService';
 
 export const StepsPage: React.FC = () => {
   const {
@@ -18,81 +15,54 @@ export const StepsPage: React.FC = () => {
     todaySteps,
     weeklySteps,
     monthlySteps,
-    isSupported,
-    permission,
     setDailyGoal,
     updateTodaySteps,
     setWeeklySteps,
     setSupported,
-    setPermission,
+    setPermission
   } = useStepsStore();
 
   const { user } = useUserStore();
-  const [isTracking, setIsTracking] = useState(false);
   const [newGoal, setNewGoal] = useState(dailyGoal.toString());
 
-  const stepsService = StepsService.getInstance();
-
-  // 📌 Şu ayın toplam adımı
+  // 📌 Bu ayın toplam adımı
   const monthKey = new Date().toISOString().slice(0, 7);
   const monthlyTotal = monthlySteps[monthKey] || 0;
 
+  // 📌 Cihaz destekliyor mu? (Android native)
   useEffect(() => {
-    const supported = stepsService.isSupported();
-    setSupported(supported);
+    const isAndroid = /android/i.test(navigator.userAgent);
+    setSupported(isAndroid);
 
-    // İlk yüklemede haftalık boş liste oluştur
+    // ilk yüklemede haftalık boş liste
     if (weeklySteps.length === 0) {
-      const emptyWeek = stepsService.getEmptyWeeklyData();
-      setWeeklySteps(emptyWeek);
+      const today = new Date();
+      const empty: any[] = [];
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+
+        empty.push({
+          date: d.toISOString().split("T")[0],
+          steps: 0,
+        });
+      }
+
+      setWeeklySteps(empty);
     }
   }, []);
-useEffect(() => {
-  const fn = (e: any) => {
-    updateTodaySteps(e.detail.steps);
-  };
 
-  window.addEventListener("stepUpdate", fn);
-  return () => window.removeEventListener("stepUpdate", fn);
-}, []);
+  // 📌 Native StepCounter Plugin → stepUpdate listener
+  useEffect(() => {
+    const listener = (e: any) => {
+      const steps = e.detail.steps;
+      updateTodaySteps(steps);
+    };
 
-  
-
-  const handleStartTracking = async () => {
-    if (!isSupported) {
-      alert('Bu cihazda adım sayar desteklenmiyor');
-      return;
-    }
-
-    try {
-      const permissionStatus = await stepsService.requestPermission();
-      setPermission(permissionStatus);
-
-      if (permissionStatus === 'granted') {
-        await stepsService.startTracking((steps) => {
-          updateTodaySteps(steps);
-        });
-        setIsTracking(true);
-      } else {
-        alert('Adım sayar için izin gerekli');
-      }
-    } catch (error) {
-      console.error('Failed to start step tracking:', error);
-      alert('Adım sayar başlatılamadı: ' + (error as Error).message);
-    }
-  };
-
-  const handleStopTracking = () => {
-    stepsService.stopTracking();
-    setIsTracking(false);
-  };
-
-  const handleUpdateGoal = () => {
-    const goal = parseInt(newGoal);
-    if (goal > 0) {
-      setDailyGoal(goal);
-    }
-  };
+    window.addEventListener("stepUpdate", listener);
+    return () => window.removeEventListener("stepUpdate", listener);
+  }, []);
 
   const progressPercentage = Math.min((todaySteps / dailyGoal) * 100, 100);
   const isGoalAchieved = todaySteps >= dailyGoal;
@@ -147,7 +117,7 @@ useEffect(() => {
         </CardContent>
       </Card>
 
-      {/* 📅 MONTHLY TOTAL CARD */}
+      {/* MONTHLY TOTAL */}
       <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border-l-4 border-l-purple-400 border border-pink-200/50 dark:border-purple-500/30">
         <CardContent className="p-4">
           <div className="flex items-center space-x-2 mb-1">
@@ -170,7 +140,7 @@ useEffect(() => {
       {/* Weekly Chart */}
       <StepChart weeklySteps={weeklySteps} dailyGoal={dailyGoal} />
 
-      {/* Motivational Message */}
+      {/* Motivational */}
       <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border-l-4 border-l-green-400 border border-pink-200/50 dark:border-purple-500/30">
         <CardContent className="p-4">
           <h3 className="font-light mb-2 text-pink-800 dark:text-purple-200">💪 Günün Motivasyonu</h3>
@@ -190,7 +160,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Bottom spacing for menu */}
       <div className="h-4"></div>
     </div>
   );

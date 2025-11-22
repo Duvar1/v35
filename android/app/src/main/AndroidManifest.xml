@@ -1,15 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.vaktinamaz.app">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Konum izinleri (KIBLE için zorunlu) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
-<!-- Sensör izinleri (Compass için) -->
     <uses-feature android:name="android.hardware.sensor.compass" android:required="false"/>
+
+    <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false"/>
+    <uses-feature android:name="android.hardware.sensor.stepdetector" android:required="false"/>
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
 
     <application
         android:allowBackup="true"
@@ -33,6 +36,11 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name=".StepService"
+            android:exported="false"
+            android:enabled="true"
+            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>
