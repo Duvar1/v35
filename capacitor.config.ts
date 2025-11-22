@@ -8,8 +8,8 @@ const config: CapacitorConfig = {
     androidScheme: 'https'
   },
   plugins: {
-    Steps: {
-      // Plugin configuration if needed
+    StepCounter: {  // ✅ DOĞRU
+      // Adım sayar ayarları
     }
   }
 };
