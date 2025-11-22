@@ -1,28 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.vaktinamaz.app">
 
-    <!-- 🌐 İnternet izni (Firebase, API, reklamlar için) -->
+    <!-- İZİNLER -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- 📍 Konum izni (Kıble, namaz vakti konum belirleme için) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- 🧭 Cihazda pusula sensörü varsa kullanılsın -->
+    <!-- SENSÖRLER -->
     <uses-feature android:name="android.hardware.sensor.compass" android:required="false"/>
-
-    <!-- 👣 Adım sensörü (Step Counter) varsa kullanılsın -->
     <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false"/>
     <uses-feature android:name="android.hardware.sensor.stepdetector" android:required="false"/>
-
-    <!-- 🟢 Arka planda çalışan servisler için zorunlu izin -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-
-    <!-- 🟡 Android 10+ için aktivite/step sensor izni (adım sayar için 100% zorunlu) -->
-    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
-
-    <!-- 🔋 Arka planda sensör okumaları kesilmesin diye (bazı cihazlarda gerekli) -->
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
         android:allowBackup="true"
@@ -46,12 +40,11 @@
             </intent-filter>
         </activity>
 
-        <!-- 🔥 Adım Sayar Servisi (arka planda sürekli çalışır) -->
+        <!-- ADIM SAYAR SERVİSİ -->
         <service
             android:name=".StepService"
             android:exported="false"
             android:enabled="true"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="health" />
     </application>
-
 </manifest>

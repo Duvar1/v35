@@ -7,8 +7,10 @@ import { registerPlugin } from '@capacitor/core';
 
 // StepCounter plugin tipi
 interface StepCounterPlugin {
-  startService(): Promise<void>;
-  stopService(): Promise<void>;
+  startService(): Promise<{ success: boolean; message: string }>;
+  stopService(): Promise<{ success: boolean; message: string }>;
+  addListener(eventName: string, listenerFunc: (data: any) => void): any;
+  removeAllListeners(): void;
 }
 
 // Plugin register
@@ -48,21 +50,44 @@ const App = () => {
 
   // Step Service Başlat
   useEffect(() => {
-    const start = async () => {
+    const startStepService = async () => {
       try {
-        await StepCounter.startService();
-        console.log("StepCounter service başlatıldı.");
+        // Sadece Android'de çalıştır
+        const isAndroid = /android/i.test(navigator.userAgent);
+        if (!isAndroid) {
+          console.log("⏭️ Adım sayar sadece Android'de destekleniyor");
+          return;
+        }
 
-        window.addEventListener("stepUpdate", (event: any) => {
-          console.log("Yeni adım:", event.detail.steps);
+        // Plugin kontrolü
+        if (!StepCounter) {
+          console.warn("⚠️ StepCounter plugin bulunamadı");
+          return;
+        }
+
+        // Servisi başlat
+        const result = await StepCounter.startService();
+        console.log("✅ StepCounter servisi başlatıldı:", result);
+
+        // Native event listener ekle
+        StepCounter.addListener('stepUpdate', (data) => {
+          console.log("📱 Adım güncellendi:", data.steps);
+          // Bu event StepsPage'de de dinleniyor, burada sadece loglama yapıyoruz
         });
 
       } catch (err) {
-        console.warn("StepCounter yüklenemedi:", err);
+        console.warn("❌ StepCounter başlatılamadı:", err);
       }
     };
 
-    start();
+    startStepService();
+
+    // Cleanup
+    return () => {
+      if (StepCounter) {
+        StepCounter.removeAllListeners();
+      }
+    };
   }, []);
 
   return (

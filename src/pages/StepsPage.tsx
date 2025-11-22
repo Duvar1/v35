@@ -24,51 +24,103 @@ export const StepsPage: React.FC = () => {
 
   const { user } = useUserStore();
   const [newGoal, setNewGoal] = useState(dailyGoal.toString());
+  const [serviceStatus, setServiceStatus] = useState<'loading' | 'running' | 'error'>('loading');
 
   // 📌 Bu ayın toplam adımı
   const monthKey = new Date().toISOString().slice(0, 7);
   const monthlyTotal = monthlySteps[monthKey] || 0;
 
-  // 📌 Cihaz destekliyor mu? (Android native)
+  // 📌 ADIM SAYARI BAŞLAT
   useEffect(() => {
-    const isAndroid = /android/i.test(navigator.userAgent);
-    setSupported(isAndroid);
+    const initializeStepCounter = async () => {
+      try {
+        const isAndroid = /android/i.test(navigator.userAgent);
+        setSupported(isAndroid);
 
-    // ilk yüklemede haftalık boş liste
-    if (weeklySteps.length === 0) {
-      const today = new Date();
-      const empty: any[] = [];
+        if (!isAndroid) {
+          setServiceStatus('error');
+          return;
+        }
 
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
+        // Capacitor plugin kontrolü
+        if (typeof (window as any).Capacitor !== 'undefined') {
+          const { StepCounter } = (window as any).Capacitor.Plugins;
+          
+          if (StepCounter) {
+            // Servisi başlat
+            await StepCounter.startService();
+            setServiceStatus('running');
+            console.log('✅ Adım sayar servisi başlatıldı');
+          } else {
+            setServiceStatus('error');
+            console.error('❌ StepCounter plugin bulunamadı');
+          }
+        } else {
+          setServiceStatus('error');
+          console.error('❌ Capacitor bulunamadı');
+        }
 
-        empty.push({
-          date: d.toISOString().split("T")[0],
-          steps: 0,
-        });
+        // Haftalık verileri başlat
+        if (weeklySteps.length === 0) {
+          const today = new Date();
+          const empty: any[] = [];
+
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+
+            empty.push({
+              date: d.toISOString().split("T")[0],
+              steps: 0,
+            });
+          }
+
+          setWeeklySteps(empty);
+        }
+      } catch (error) {
+        console.error('❌ Adım sayar başlatılamadı:', error);
+        setServiceStatus('error');
       }
-
-      setWeeklySteps(empty);
-    }
-  }, []);
-
-  // 📌 Native StepCounter Plugin → stepUpdate listener
-  useEffect(() => {
-    const listener = (e: any) => {
-      const steps = e.detail.steps;
-      updateTodaySteps(steps);
     };
 
-    window.addEventListener("stepUpdate", listener);
-    return () => window.removeEventListener("stepUpdate", listener);
+    initializeStepCounter();
   }, []);
+
+  // 📌 ADIM GÜNCELLEMELERİNİ DİNLE
+  useEffect(() => {
+    const handleStepUpdate = (event: any) => {
+      try {
+        const steps = event.detail.steps;
+        console.log('📱 Yeni adım alındı:', steps);
+        updateTodaySteps(steps);
+      } catch (error) {
+        console.error('❌ Adım güncelleme hatası:', error);
+      }
+    };
+
+    window.addEventListener("stepUpdate", handleStepUpdate);
+    
+    return () => {
+      window.removeEventListener("stepUpdate", handleStepUpdate);
+    };
+  }, [updateTodaySteps]);
 
   const progressPercentage = Math.min((todaySteps / dailyGoal) * 100, 100);
   const isGoalAchieved = todaySteps >= dailyGoal;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900 p-4 space-y-6 no-horizontal-scroll">
+
+      {/* Servis Durumu */}
+      <div className={`text-center p-2 rounded-lg ${
+        serviceStatus === 'loading' ? 'bg-yellow-100 text-yellow-800' :
+        serviceStatus === 'running' ? 'bg-green-100 text-green-800' :
+        'bg-red-100 text-red-800'
+      }`}>
+        {serviceStatus === 'loading' && '🔄 Adım sayar başlatılıyor...'}
+        {serviceStatus === 'running' && '✅ Adım sayar çalışıyor'}
+        {serviceStatus === 'error' && '❌ Adım sayar başlatılamadı'}
+      </div>
 
       {/* Header */}
       <div className="text-center space-y-2">
