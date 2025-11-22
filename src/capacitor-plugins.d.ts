@@ -5,6 +5,8 @@ declare module '@capacitor/core' {
 }
 
 export interface StepCounterPlugin {
-  startService(): Promise<void>;
-  stopService(): Promise<void>;
+  startService(): Promise<{ success: boolean; message: string }>;
+  stopService(): Promise<{ success: boolean; message: string }>;
+  checkPermissions?(): Promise<{ granted: boolean }>;
+  requestPermissions?(): Promise<{ granted: boolean }>;
 }

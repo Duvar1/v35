@@ -8,42 +8,31 @@ interface DailySteps {
 
 interface StepsStore {
   dailyGoal: number;
-
   todaySteps: number;
   weeklySteps: DailySteps[];
-
-  // Aylık toplama sistemi
-  monthlySteps: Record<string, number>; // örnek: { "2025-01": 12500 }
-
+  monthlySteps: Record<string, number>;
   isSupported: boolean;
   permission: 'granted' | 'denied' | 'prompt' | 'unknown';
 
   setDailyGoal: (goal: number) => void;
   updateTodaySteps: (steps: number) => void;
   addSteps: (steps: number) => void;
-
   setWeeklySteps: (weeklySteps: DailySteps[]) => void;
+  setMonthlySteps: (monthlySteps: Record<string, number>) => void; // ✅ EKLENDİ
   setSupported: (supported: boolean) => void;
   setPermission: (permission: 'granted' | 'denied' | 'prompt' | 'unknown') => void;
-
   saveTodayToWeek: () => void;
   saveTodayToMonth: () => void;
-
   resetDaily: () => void;
 }
 
 export const useStepsStore = create<StepsStore>()(
   persist(
     (set, get) => ({
-      dailyGoal: 4000,
-
+      dailyGoal: 10000,
       todaySteps: 0,
-
       weeklySteps: [],
-
-      // Ay: toplam steps
       monthlySteps: {},
-
       isSupported: false,
       permission: 'unknown',
 
@@ -58,18 +47,18 @@ export const useStepsStore = create<StepsStore>()(
 
       setWeeklySteps: (weeklySteps) => set({ weeklySteps }),
 
+      // ✅ YENİ EKLENDİ: Aylık verileri güncelleme
+      setMonthlySteps: (monthlySteps) => set({ monthlySteps }),
+
       setSupported: (supported) => set({ isSupported: supported }),
 
       setPermission: (permission) => set({ permission }),
 
-      // 🔥 Bugünü haftaya ekler
       saveTodayToWeek: () => {
         const state = get();
         const today = new Date().toISOString().split("T")[0];
 
-        // Eğer bugün zaten varsa güncelle
         const filtered = state.weeklySteps.filter(d => d.date !== today);
-
         const updated = [
           ...filtered,
           { date: today, steps: state.todaySteps }
@@ -78,7 +67,6 @@ export const useStepsStore = create<StepsStore>()(
         set({ weeklySteps: updated });
       },
 
-      // 🔥 Bugünü ay toplamına ekler
       saveTodayToMonth: () => {
         const state = get();
         const today = new Date();
@@ -92,17 +80,11 @@ export const useStepsStore = create<StepsStore>()(
         });
       },
 
-      // 🔥 Günlük reset: haftaya ve aya kaydedip sıfırlar
       resetDaily: () => {
         const state = get();
-
         state.saveTodayToWeek();
         state.saveTodayToMonth();
-
-        // Yeni güne başla
-        set({
-          todaySteps: 0
-        });
+        set({ todaySteps: 0 });
       }
     }),
     {
