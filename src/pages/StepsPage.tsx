@@ -67,7 +67,15 @@ export const StepsPage: React.FC = () => {
       stepService.cleanup();
     };
   }, []);
-
+useEffect(() => {
+  console.log('Capacitor platform:', Capacitor.getPlatform());
+  console.log('Is native:', Capacitor.isNativePlatform());
+  
+  if (Capacitor.isNativePlatform()) {
+    console.log('Init çağrılıyor...');
+    initService();
+  }
+}, []);
   const initService = async () => {
     setLoading(true);
     try {
