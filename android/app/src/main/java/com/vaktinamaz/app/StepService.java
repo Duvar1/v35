@@ -11,6 +11,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -22,35 +23,43 @@ public class StepService extends Service implements SensorEventListener {
     private Sensor stepSensor;
     private float initialSteps = 0f;
     private boolean isInitialized = false;
+    private PowerManager.WakeLock wakeLock;
 
-    private static final String CHANNEL_ID = "step_counter_channel";
     private static final String TAG = "StepService";
+    private static final String CHANNEL_ID = "step_counter_channel";
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "Servis oluşturuldu");
         
+        // WakeLock al (arka planda çalışması için)
+        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "StepService:WakeLock");
+        wakeLock.acquire();
+
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
             stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         }
 
         createNotificationChannel();
-        startForegroundService();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "Servis başlatıldı");
         
+        // Foreground service başlat
+        startForegroundService();
+
         if (stepSensor != null) {
             sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI);
             Log.d(TAG, "Sensör dinleyici kaydedildi");
         } else {
-            Log.e(TAG, "Adım sensörü bulunamadı! Cihaz desteklemiyor olabilir.");
-            stopSelf();
+            Log.e(TAG, "Adım sensörü bulunamadı!");
         }
+
         return START_STICKY;
     }
 
@@ -92,9 +101,10 @@ public class StepService extends Service implements SensorEventListener {
         int stepsSinceStart = (int) (currentSteps - initialSteps);
 
         Log.d(TAG, "Yeni adım: " + stepsSinceStart);
-        
-        updateNotification(stepsSinceStart);
         StepCounterPlugin.sendStepToJS(stepsSinceStart);
+        
+        // Bildirimi güncelle
+        updateNotification(stepsSinceStart);
     }
 
     private void updateNotification(int steps) {
@@ -116,6 +126,9 @@ public class StepService extends Service implements SensorEventListener {
         super.onDestroy();
         if (sensorManager != null) {
             sensorManager.unregisterListener(this);
+        }
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
         }
         Log.d(TAG, "Servis durduruldu");
     }

@@ -10,7 +10,6 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 @CapacitorPlugin(name = "StepCounter")
@@ -18,7 +17,6 @@ public class StepCounterPlugin extends Plugin {
 
     private static StepCounterPlugin instance;
     private static final String TAG = "StepCounterPlugin";
-    private static final int ACTIVITY_RECOGNITION_REQUEST_CODE = 1001;
 
     @Override
     public void load() {
@@ -26,17 +24,11 @@ public class StepCounterPlugin extends Plugin {
         instance = this;
         Log.d(TAG, "Plugin yüklendi");
         
-        // Uygulama açılınca otomatik izin kontrolü ve servis başlatma
-        checkAndStartService();
-    }
-
-    private void checkAndStartService() {
+        // İzin kontrolü ve servis başlatma
         if (hasActivityRecognitionPermission()) {
             startStepService();
-        } else {
-            // İzin yoksa otomatik iste
-            requestActivityRecognitionPermission();
         }
+        // İzin yoksa React tarafında isteyeceğiz
     }
 
     private boolean hasActivityRecognitionPermission() {
@@ -47,18 +39,10 @@ public class StepCounterPlugin extends Plugin {
         return true; // Android 10 altında izin gerekmez
     }
 
-    private void requestActivityRecognitionPermission() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            ActivityCompat.requestPermissions(getActivity(),
-                new String[]{android.Manifest.permission.ACTIVITY_RECOGNITION},
-                ACTIVITY_RECOGNITION_REQUEST_CODE);
-        }
-    }
-
     private void startStepService() {
         try {
             Intent serviceIntent = new Intent(getContext(), StepService.class);
-            getContext().startForegroundService(serviceIntent);
+            getContext().startService(serviceIntent);
             Log.d(TAG, "Adım servisi başlatıldı");
         } catch (Exception e) {
             Log.e(TAG, "Servis başlatma hatası: " + e.getMessage());
@@ -93,16 +77,11 @@ public class StepCounterPlugin extends Plugin {
         }
     }
 
-    // İzin sonucu - OVERRIDE KALDIRILDI (Capacitor otomatik handle ediyor)
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode == ACTIVITY_RECOGNITION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // İzin verildi, servisi başlat
-                startStepService();
-            } else {
-                Log.e(TAG, "ACTIVITY_RECOGNITION izni reddedildi");
-            }
-        }
+    @PluginMethod
+    public void checkPermission(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("granted", hasActivityRecognitionPermission());
+        call.resolve(result);
     }
 
     public static void sendStepToJS(int steps) {
@@ -111,8 +90,6 @@ public class StepCounterPlugin extends Plugin {
         try {
             JSObject ret = new JSObject();
             ret.put("steps", steps);
-            ret.put("timestamp", System.currentTimeMillis());
-
             instance.notifyListeners("stepUpdate", ret, true);
         } catch (Exception e) {
             Log.e(TAG, "JS'ye adım gönderme hatası: " + e.getMessage());
