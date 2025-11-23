@@ -1,9 +1,3 @@
-declare module '@capacitor/core' {
-  interface PluginRegistry {
-    StepCounter: StepCounterPlugin;
-  }
-}
-
 export interface StepCounterPlugin {
   requestPermissions(): Promise<{ granted: boolean }>;
   checkPermission(): Promise<{ granted: boolean }>;
