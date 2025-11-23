@@ -41,7 +41,11 @@ export const StepsPage: React.FC = () => {
 
   // 📌 İlk yükleme - Otomatik başlat veya izin iste
   useEffect(() => {
+    console.log('🔍 Capacitor platform:', Capacitor.getPlatform());
+    console.log('🔍 Is native:', Capacitor.isNativePlatform());
+    
     if (Capacitor.isNativePlatform()) {
+      console.log('✅ Native platform, init çağrılıyor...');
       initService();
     }
 
@@ -67,43 +71,43 @@ export const StepsPage: React.FC = () => {
       stepService.cleanup();
     };
   }, []);
-useEffect(() => {
-  console.log('Capacitor platform:', Capacitor.getPlatform());
-  console.log('Is native:', Capacitor.isNativePlatform());
-  
-  if (Capacitor.isNativePlatform()) {
-    console.log('Init çağrılıyor...');
-    initService();
-  }
-}, []);
+
   const initService = async () => {
     setLoading(true);
     try {
+      console.log('🚀 stepService.init() çağrılıyor...');
       const success = await stepService.init();
+      console.log('📊 Init sonucu:', success);
+      console.log('🔐 Permission durumu:', permission);
+      
       setIsServiceRunning(success);
       
       // İzin yoksa dialog göster
       if (!success && permission === 'prompt') {
+        console.log('⚠️ İzin yok, dialog gösteriliyor...');
         setTimeout(() => setShowPermissionDialog(true), 500);
       }
     } catch (error) {
-      console.error('Servis başlatma hatası:', error);
+      console.error('❌ Servis başlatma hatası:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handlePermissionRequest = async () => {
+    console.log('📝 İzin isteniyor...');
     setShowPermissionDialog(false);
     setLoading(true);
     try {
       const success = await stepService.requestPermissionAndStart();
+      console.log('✅ İzin sonucu:', success);
       setIsServiceRunning(success);
       
       if (!success) {
         alert('İzin reddedildi. Ayarlar > Uygulamalar > İzinler\'den manuel olarak izin verebilirsiniz.');
       }
     } catch (error) {
+      console.error('❌ İzin hatası:', error);
       alert('Bir hata oluştu: ' + error);
     } finally {
       setLoading(false);
