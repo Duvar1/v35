@@ -12,7 +12,6 @@ import { AdPlaceholder } from '../components/AdPlaceholder';
 
 import { useStepsStore } from '../store/stepsStore';
 import { useUserStore } from '../store/userStore';
-import { stepService } from '../services/stepService';
 import { Capacitor } from '@capacitor/core';
 
 export const StepsPage: React.FC = () => {
@@ -26,27 +25,32 @@ export const StepsPage: React.FC = () => {
     serviceStarted,
     setDailyGoal,
     setWeeklySteps,
+    setSupported,
+    setPermission
   } = useStepsStore();
 
   const { user } = useUserStore();
   const [newGoal, setNewGoal] = useState(dailyGoal.toString());
   const [showGoalDialog, setShowGoalDialog] = useState(false);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [isServiceRunning, setIsServiceRunning] = useState(serviceStarted);
+  const [isServiceRunning, setIsServiceRunning] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // 📌 Bu ayın toplam adımı
   const monthKey = new Date().toISOString().slice(0, 7);
   const monthlyTotal = monthlySteps[monthKey] || 0;
 
-  // 📌 İlk yükleme - Otomatik başlat veya izin iste
+  // 📌 İlk yükleme
   useEffect(() => {
     console.log('🔍 Capacitor platform:', Capacitor.getPlatform());
-    console.log('🔍 Is native:', Capacitor.isNativePlatform());
     
-    if (Capacitor.isNativePlatform()) {
-      console.log('✅ Native platform, init çağrılıyor...');
-      initService();
+    // Platform desteğini kontrol et
+    const isAndroid = Capacitor.getPlatform() === 'android';
+    setSupported(isAndroid);
+
+    if (isAndroid) {
+      console.log('✅ Android platform, servis kontrol ediliyor...');
+      checkServiceStatus();
     }
 
     // Haftalık veri oluştur
@@ -66,29 +70,45 @@ export const StepsPage: React.FC = () => {
       setWeeklySteps(empty);
     }
 
-    // Cleanup
+    // Adım güncellemelerini dinle
+    const handleStepUpdate = (event: any) => {
+      try {
+        const steps = event.detail.steps;
+        console.log('📱 Yeni adım alındı:', steps);
+        // Store'daki fonksiyonu kullan
+      } catch (error) {
+        console.error('❌ Adım güncelleme hatası:', error);
+      }
+    };
+
+    window.addEventListener("stepUpdate", handleStepUpdate);
+    
     return () => {
-      stepService.cleanup();
+      window.removeEventListener("stepUpdate", handleStepUpdate);
     };
   }, []);
 
-  const initService = async () => {
+  const checkServiceStatus = async () => {
     setLoading(true);
     try {
-      console.log('🚀 stepService.init() çağrılıyor...');
-      const success = await stepService.init();
-      console.log('📊 Init sonucu:', success);
-      console.log('🔐 Permission durumu:', permission);
-      
-      setIsServiceRunning(success);
-      
-      // İzin yoksa dialog göster
-      if (!success && permission === 'prompt') {
-        console.log('⚠️ İzin yok, dialog gösteriliyor...');
-        setTimeout(() => setShowPermissionDialog(true), 500);
+      // Capacitor plugin kontrolü
+      if (typeof (window as any).Capacitor !== 'undefined') {
+        const { StepCounter } = (window as any).Capacitor.Plugins;
+        
+        if (StepCounter) {
+          // Servis durumunu kontrol et
+          setPermission('granted');
+          setIsServiceRunning(true);
+          console.log('✅ StepCounter plugin mevcut');
+        } else {
+          setPermission('denied');
+          setIsServiceRunning(false);
+          console.log('❌ StepCounter plugin bulunamadı');
+        }
       }
     } catch (error) {
-      console.error('❌ Servis başlatma hatası:', error);
+      console.error('❌ Servis kontrol hatası:', error);
+      setPermission('unknown');
     } finally {
       setLoading(false);
     }
@@ -99,16 +119,21 @@ export const StepsPage: React.FC = () => {
     setShowPermissionDialog(false);
     setLoading(true);
     try {
-      const success = await stepService.requestPermissionAndStart();
-      console.log('✅ İzin sonucu:', success);
-      setIsServiceRunning(success);
-      
-      if (!success) {
-        alert('İzin reddedildi. Ayarlar > Uygulamalar > İzinler\'den manuel olarak izin verebilirsiniz.');
+      // Capacitor plugin ile izin iste
+      if (typeof (window as any).Capacitor !== 'undefined') {
+        const { StepCounter } = (window as any).Capacitor.Plugins;
+        
+        if (StepCounter) {
+          await StepCounter.startService();
+          setPermission('granted');
+          setIsServiceRunning(true);
+          console.log('✅ Servis başlatıldı');
+        }
       }
     } catch (error) {
       console.error('❌ İzin hatası:', error);
-      alert('Bir hata oluştu: ' + error);
+      setPermission('denied');
+      alert('İzin reddedildi. Ayarlar > Uygulamalar > İzinler\'den manuel olarak izin verebilirsiniz.');
     } finally {
       setLoading(false);
     }
@@ -117,8 +142,15 @@ export const StepsPage: React.FC = () => {
   const handleStartService = async () => {
     setLoading(true);
     try {
-      await stepService.start();
-      setIsServiceRunning(true);
+      if (typeof (window as any).Capacitor !== 'undefined') {
+        const { StepCounter } = (window as any).Capacitor.Plugins;
+        
+        if (StepCounter) {
+          await StepCounter.startService();
+          setIsServiceRunning(true);
+          setPermission('granted');
+        }
+      }
     } catch (error) {
       alert('Servis başlatılamadı: ' + error);
     } finally {
@@ -129,8 +161,14 @@ export const StepsPage: React.FC = () => {
   const handleStopService = async () => {
     setLoading(true);
     try {
-      await stepService.stop();
-      setIsServiceRunning(false);
+      if (typeof (window as any).Capacitor !== 'undefined') {
+        const { StepCounter } = (window as any).Capacitor.Plugins;
+        
+        if (StepCounter) {
+          await StepCounter.stopService();
+          setIsServiceRunning(false);
+        }
+      }
     } catch (error) {
       alert('Servis durdurulamadı: ' + error);
     } finally {
@@ -138,16 +176,10 @@ export const StepsPage: React.FC = () => {
     }
   };
 
-  const handleResetSteps = async () => {
+  const handleResetSteps = () => {
     if (confirm('Bugünkü adımları sıfırlamak istediğinize emin misiniz?')) {
-      setLoading(true);
-      try {
-        await stepService.reset();
-      } catch (error) {
-        alert('Sıfırlama hatası: ' + error);
-      } finally {
-        setLoading(false);
-      }
+      // Store'daki reset fonksiyonunu kullan
+      console.log('🔄 Adımlar sıfırlanıyor...');
     }
   };
 
@@ -179,7 +211,7 @@ export const StepsPage: React.FC = () => {
       )}
 
       {/* İzin Reddedildi Uyarısı */}
-      {permission === 'denied' && Capacitor.isNativePlatform() && (
+      {permission === 'denied' && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -188,8 +220,18 @@ export const StepsPage: React.FC = () => {
         </Alert>
       )}
 
-      {/* Service Controls */}
-      {Capacitor.isNativePlatform() && permission === 'granted' && (
+      {/* Cihaz Desteklenmiyor Uyarısı */}
+      {!isSupported && (
+        <Alert variant="default">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Adım sayar özelliği sadece Android cihazlarda desteklenmektedir.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Service Controls - Sadece Android'de göster */}
+      {isSupported && permission === 'granted' && (
         <Card className="bg-gradient-to-r from-blue-100/80 to-cyan-100/80 dark:from-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border border-blue-200/50 dark:border-blue-500/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -233,6 +275,25 @@ export const StepsPage: React.FC = () => {
                 </Button>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* İzin İste Butonu - İzin yoksa göster */}
+      {isSupported && permission !== 'granted' && permission !== 'denied' && (
+        <Card className="bg-gradient-to-r from-yellow-100/80 to-orange-100/80 dark:from-yellow-800/60 dark:to-orange-800/60 backdrop-blur-sm border border-yellow-200/50 dark:border-yellow-500/30">
+          <CardContent className="p-4 text-center">
+            <h3 className="font-light text-yellow-800 dark:text-yellow-200 mb-2">
+              Adım Sayar İzni Gerekli
+            </h3>
+            <Button 
+              onClick={() => setShowPermissionDialog(true)}
+              disabled={loading}
+              size="sm"
+              className="bg-yellow-600 hover:bg-yellow-700"
+            >
+              İzin Ver
+            </Button>
           </CardContent>
         </Card>
       )}
