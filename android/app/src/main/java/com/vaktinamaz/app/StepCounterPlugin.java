@@ -49,9 +49,8 @@ public class StepCounterPlugin extends Plugin implements SensorEventListener {
 
         // İzin kontrolü - Capacitor 7'de yeni yöntem
         if (!hasRequiredPermissions()) {
-            // İzin yoksa, izin iste ve call'ı kaydet
-            saveCall(call);
-            requestAllPermissions(call);
+            // ✅ DÜZELTİLDİ: requestAllPermissions artık permission alias gerektiriyor
+            requestAllPermissions(call, "activity_recognition");
             return;
         }
 
@@ -97,8 +96,8 @@ public class StepCounterPlugin extends Plugin implements SensorEventListener {
     public void requestPermissions(PluginCall call) {
         // Capacitor 7'de izin yönetimi
         if (!hasRequiredPermissions()) {
-            saveCall(call);
-            requestAllPermissions(call);
+            // ✅ DÜZELTİLDİ: requestAllPermissions artık permission alias gerektiriyor
+            requestAllPermissions(call, "activity_recognition");
         } else {
             JSObject ret = new JSObject();
             ret.put("activity_recognition", "granted");
@@ -158,31 +157,6 @@ public class StepCounterPlugin extends Plugin implements SensorEventListener {
         }
     }
 
-    // Capacitor 7'de izin callback'i - DÜZELTİLMİŞ VERSİYON
-    @Override
-    protected void handleOnRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.handleOnRequestPermissionsResult(requestCode, permissions, grantResults);
-        
-        // Bekleyen çağrıyı al
-        PluginCall savedCall = getSavedCall();
-        if (savedCall != null) {
-            JSObject ret = new JSObject();
-            
-            if (hasRequiredPermissions()) {
-                ret.put("activity_recognition", "granted");
-                savedCall.resolve(ret);
-                
-                // Eğer startStepCounting çağrıldıysa, otomatik başlat
-                if ("startStepCounting".equals(savedCall.getMethodName())) {
-                    startStepCountingAfterPermission();
-                }
-            } else {
-                ret.put("activity_recognition", "denied");
-                savedCall.reject("Permission denied");
-            }
-        }
-    }
-
     private void startStepCountingAfterPermission() {
         if (stepSensor == null) {
             return;
@@ -196,7 +170,4 @@ public class StepCounterPlugin extends Plugin implements SensorEventListener {
         ret.put("message", "Step counting started after permission granted");
         notifyListeners("serviceStatus", ret);
     }
-
-    // StepService'den adım almak için static method - KALDIRILDI
-    // Bu method artık gerekli değil, doğrudan listener kullanıyoruz
 }
