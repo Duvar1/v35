@@ -1,84 +1,70 @@
 package com.vaktinamaz.app;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.util.Log;
-
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginMethod;
-import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.Permission;
+import android.util.Log;
 
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-@CapacitorPlugin(
-    name = "StepCounter",
-    permissions = {
-        @Permission(strings = { Manifest.permission.BODY_SENSORS }, alias = "body_sensors"),
-        @Permission(strings = { Manifest.permission.ACTIVITY_RECOGNITION }, alias = "activity_recognition")
-    }
-)
+@CapacitorPlugin(name = "StepCounter")
 public class StepCounterPlugin extends Plugin {
 
-    private static StepCounterPlugin instance;
     private static final String TAG = "StepCounterPlugin";
-
-    @Override
-    public void load() {
-        super.load();
-        instance = this;
-        Log.d(TAG, "Plugin yüklendi");
-    }
 
     @PluginMethod
     public void startService(PluginCall call) {
-        // İzin kontrolü
-        if (!hasBodySensorsPermission()) {
-            requestPermissions(call);
-            return;
-        }
-
-        // Servisi başlat
-        startStepService();
-        call.resolve();
-    }
-
-    private boolean hasBodySensorsPermission() {
-        return ContextCompat.checkSelfPermission(getContext(), 
-               Manifest.permission.BODY_SENSORS) == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private void startStepService() {
         try {
-            android.content.Intent serviceIntent = new android.content.Intent(getContext(), StepService.class);
-            getContext().startService(serviceIntent);
-            Log.d(TAG, "Adım servisi başlatıldı");
+            // Servisi başlat
+            getActivity().startService(new android.content.Intent(getContext(), StepService.class));
+            
+            JSObject result = new JSObject();
+            result.put("success", true);
+            result.put("message", "Adım sayar servisi başlatıldı");
+            call.resolve(result);
+            
+            Log.d(TAG, "StepCounter servisi başlatıldı");
         } catch (Exception e) {
             Log.e(TAG, "Servis başlatma hatası: " + e.getMessage());
+            call.reject("Servis başlatılamadı: " + e.getMessage());
         }
     }
 
-    @Override
-    public void handleOnStart() {
-        super.handleOnStart();
-        // Uygulama açılınca izin kontrol et
-        if (hasBodySensorsPermission()) {
-            startStepService();
+    @PluginMethod
+    public void stopService(PluginCall call) {
+        try {
+            // Servisi durdur
+            getActivity().stopService(new android.content.Intent(getContext(), StepService.class));
+            
+            JSObject result = new JSObject();
+            result.put("success", true);
+            result.put("message", "Adım sayar servisi durduruldu");
+            call.resolve(result);
+            
+            Log.d(TAG, "StepCounter servisi durduruldu");
+        } catch (Exception e) {
+            Log.e(TAG, "Servis durdurma hatası: " + e.getMessage());
+            call.reject("Servis durdurulamadı: " + e.getMessage());
         }
     }
 
     public static void sendStepToJS(int steps) {
-        if (instance == null) return;
-
-        try {
+        // Bu metod static olarak StepService'den çağrılacak
+        StepCounterPlugin plugin = (StepCounterPlugin) getPluginInstance("StepCounter");
+        if (plugin != null) {
             JSObject ret = new JSObject();
             ret.put("steps", steps);
-            instance.notifyListeners("stepUpdate", ret, true);
+            plugin.notifyListeners("stepUpdate", ret);
+        }
+    }
+
+    private static Plugin getPluginInstance(String pluginId) {
+        // Capacitor 7'de plugin instance'ı alma
+        try {
+            Bridge bridge = BridgeManager.getInstance().getBridge();
+            return bridge.getPlugin(pluginId);
         } catch (Exception e) {
-            Log.e(TAG, "JS'ye adım gönderme hatası: " + e.getMessage());
+            Log.e(TAG, "Plugin instance alınamadı: " + e.getMessage());
+            return null;
         }
     }
 }

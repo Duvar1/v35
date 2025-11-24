@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Footprints, Award, CalendarDays, Target, Play, Square, RotateCcw, AlertCircle } from 'lucide-react';
@@ -14,6 +14,33 @@ import { useStepsStore } from '../store/stepsStore';
 import { useUserStore } from '../store/userStore';
 import { Capacitor } from '@capacitor/core';
 
+// Basit StepService - callback ile çalışan
+class SimpleStepService {
+  private stepUpdateCallback: ((steps: number) => void) | null = null;
+  private isRunning = false;
+
+  setStepUpdateCallback(callback: (steps: number) => void) {
+    this.stepUpdateCallback = callback;
+  }
+
+  // Adım güncellemesini tetikle (test için)
+  simulateStepUpdate(steps: number) {
+    if (this.stepUpdateCallback) {
+      this.stepUpdateCallback(steps);
+    }
+  }
+
+  getStatus() {
+    return this.isRunning;
+  }
+
+  setStatus(running: boolean) {
+    this.isRunning = running;
+  }
+}
+
+export const stepService = new SimpleStepService();
+
 export const StepsPage: React.FC = () => {
   const {
     dailyGoal,
@@ -22,11 +49,11 @@ export const StepsPage: React.FC = () => {
     monthlySteps,
     isSupported,
     permission,
-    serviceStarted,
     setDailyGoal,
     setWeeklySteps,
     setSupported,
-    setPermission
+    setPermission,
+    updateTodaySteps
   } = useStepsStore();
 
   const { user } = useUserStore();
@@ -40,10 +67,19 @@ export const StepsPage: React.FC = () => {
   const monthKey = new Date().toISOString().slice(0, 7);
   const monthlyTotal = monthlySteps[monthKey] || 0;
 
+  // 📌 Callback fonksiyonu - useCallback ile optimize et
+  const handleStepUpdate = useCallback((steps: number) => {
+    console.log('📱 Callback ile adım güncellendi:', steps);
+    updateTodaySteps(steps);
+  }, [updateTodaySteps]);
+
   // 📌 İlk yükleme
   useEffect(() => {
     console.log('🔍 Capacitor platform:', Capacitor.getPlatform());
     
+    // StepService callback'ini set et
+    stepService.setStepUpdateCallback(handleStepUpdate);
+
     // Platform desteğini kontrol et
     const isAndroid = Capacitor.getPlatform() === 'android';
     setSupported(isAndroid);
@@ -63,30 +99,30 @@ export const StepsPage: React.FC = () => {
         d.setDate(d.getDate() - i);
         empty.push({
           date: d.toISOString().split("T")[0],
-          steps: 0,
+          steps: Math.floor(Math.random() * 3000) + 1000, // Test verisi
         });
       }
 
       setWeeklySteps(empty);
     }
 
-    // Adım güncellemelerini dinle
-    const handleStepUpdate = (event: any) => {
+    // Native adım güncellemelerini dinle
+    const handleNativeStepUpdate = (event: any) => {
       try {
         const steps = event.detail.steps;
-        console.log('📱 Yeni adım alındı:', steps);
-        // Store'daki fonksiyonu kullan
+        console.log('📱 Native adım güncellendi:', steps);
+        updateTodaySteps(steps);
       } catch (error) {
         console.error('❌ Adım güncelleme hatası:', error);
       }
     };
 
-    window.addEventListener("stepUpdate", handleStepUpdate);
+    window.addEventListener("stepUpdate", handleNativeStepUpdate);
     
     return () => {
-      window.removeEventListener("stepUpdate", handleStepUpdate);
+      window.removeEventListener("stepUpdate", handleNativeStepUpdate);
     };
-  }, []);
+  }, [handleStepUpdate, setSupported, setWeeklySteps, updateTodaySteps, weeklySteps.length]);
 
   const checkServiceStatus = async () => {
     setLoading(true);
@@ -96,12 +132,26 @@ export const StepsPage: React.FC = () => {
         const { StepCounter } = (window as any).Capacitor.Plugins;
         
         if (StepCounter) {
-          // Servis durumunu kontrol et
-          setPermission('granted');
-          setIsServiceRunning(true);
-          console.log('✅ StepCounter plugin mevcut');
+          // Plugin mevcut, izin kontrol et
+          try {
+            const permResult = await StepCounter.checkPermission();
+            if (permResult.granted) {
+              setPermission('granted');
+              setIsServiceRunning(true);
+              stepService.setStatus(true);
+              console.log('✅ StepCounter plugin mevcut ve izin verilmiş');
+            } else {
+              setPermission('prompt');
+              setIsServiceRunning(false);
+              console.log('✅ StepCounter plugin mevcut ama izin gerekli');
+            }
+          } catch {
+            setPermission('prompt');
+            setIsServiceRunning(false);
+            console.log('✅ StepCounter plugin mevcut ama izin kontrolü başarısız');
+          }
         } else {
-          setPermission('denied');
+          setPermission('unknown');
           setIsServiceRunning(false);
           console.log('❌ StepCounter plugin bulunamadı');
         }
@@ -127,6 +177,7 @@ export const StepsPage: React.FC = () => {
           await StepCounter.startService();
           setPermission('granted');
           setIsServiceRunning(true);
+          stepService.setStatus(true);
           console.log('✅ Servis başlatıldı');
         }
       }
@@ -148,7 +199,14 @@ export const StepsPage: React.FC = () => {
         if (StepCounter) {
           await StepCounter.startService();
           setIsServiceRunning(true);
+          stepService.setStatus(true);
           setPermission('granted');
+          
+          // Test için rastgele adım ekle
+          setTimeout(() => {
+            const randomSteps = Math.floor(Math.random() * 1000) + 500;
+            stepService.simulateStepUpdate(todaySteps + randomSteps);
+          }, 1000);
         }
       }
     } catch (error) {
@@ -167,6 +225,7 @@ export const StepsPage: React.FC = () => {
         if (StepCounter) {
           await StepCounter.stopService();
           setIsServiceRunning(false);
+          stepService.setStatus(false);
         }
       }
     } catch (error) {
@@ -178,8 +237,8 @@ export const StepsPage: React.FC = () => {
 
   const handleResetSteps = () => {
     if (confirm('Bugünkü adımları sıfırlamak istediğinize emin misiniz?')) {
-      // Store'daki reset fonksiyonunu kullan
-      console.log('🔄 Adımlar sıfırlanıyor...');
+      updateTodaySteps(0);
+      console.log('🔄 Adımlar sıfırlandı');
     }
   };
 
@@ -240,6 +299,9 @@ export const StepsPage: React.FC = () => {
                 <p className="text-xs text-blue-600 dark:text-blue-300">
                   {isServiceRunning ? '✅ Arka planda çalışıyor' : '⏸️ Durduruldu'}
                 </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Callback: {stepService.getStatus() ? 'Aktif' : 'Pasif'}
+                </p>
               </div>
               
               <div className="flex gap-2">
@@ -272,6 +334,16 @@ export const StepsPage: React.FC = () => {
                   variant="outline"
                 >
                   <RotateCcw className="h-4 w-4" />
+                </Button>
+
+                {/* Test butonu */}
+                <Button 
+                  onClick={() => stepService.simulateStepUpdate(todaySteps + 100)}
+                  disabled={loading}
+                  size="sm"
+                  variant="outline"
+                >
+                  +100
                 </Button>
               </div>
             </div>
