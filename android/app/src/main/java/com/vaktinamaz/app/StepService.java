@@ -14,7 +14,6 @@ import android.os.IBinder;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
-// import androidx.localbroadcastmanager.content.LocalBroadcastManager; // Veri iletişimi için gerekli olabilir
 
 public class StepService extends Service implements SensorEventListener {
 
@@ -25,7 +24,6 @@ public class StepService extends Service implements SensorEventListener {
 
     private static final String TAG = "StepService";
     private static final String CHANNEL_ID = "step_counter_channel";
-    private static final int NOTIFICATION_ID = 1; // Bildirim ID'si
 
     @Override
     public void onCreate() {
@@ -38,7 +36,7 @@ public class StepService extends Service implements SensorEventListener {
         }
 
         createNotificationChannel();
-        startForegroundService(); // Servis oluşturulur oluşturulmaz ön plana alınır
+        startForegroundService();
     }
 
     @Override
@@ -46,8 +44,7 @@ public class StepService extends Service implements SensorEventListener {
         Log.d(TAG, "StepService başlatıldı");
         
         if (stepSensor != null) {
-            // SENSOR_DELAY_UI yerine SENSOR_DELAY_NORMAL daha iyidir
-            sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_NORMAL); 
+            sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI);
             Log.d(TAG, "Adım sensörü dinleniyor");
         } else {
             Log.e(TAG, "Adım sensörü bulunamadı!");
@@ -73,15 +70,14 @@ public class StepService extends Service implements SensorEventListener {
     }
 
     private void startForegroundService() {
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID) // DÜZELTİLDİ: "new new" yerine "new"
                 .setContentTitle("Adım Sayar Çalışıyor")
                 .setContentText("Adımlarınız sayılıyor...")
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();
 
-        startForeground(NOTIFICATION_ID, notification); // Kalıcı bildirim başlatılıyor
-        Log.d(TAG, "startForeground çağrıldı.");
+        startForeground(1, notification);
     }
 
     @Override
@@ -101,14 +97,11 @@ public class StepService extends Service implements SensorEventListener {
             
             // Bildirimi güncelle
             updateNotification(stepsSinceStart);
-            
-            // 🔥 Capacitor'a veri göndermek için StepCounterPlugin.java'ya event yayınlanmalı
-            // Bunu yapmak için StepCounterPlugin'de notifyListeners() çağrılmalıdır.
         }
     }
 
     private void updateNotification(int steps) {
-        Notification notification = new new NotificationCompat.Builder(this, CHANNEL_ID)
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID) // DÜZELTİLDİ: "new new" yerine "new"
                 .setContentTitle("Adım Sayar")
                 .setContentText("Toplam Adım: " + steps)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -117,8 +110,7 @@ public class StepService extends Service implements SensorEventListener {
 
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {
-            manager.notify(NOTIFICATION_ID, notification); // Bildirimi güncellerken aynı ID kullanılır
-            Log.d(TAG, "Bildirim güncellendi. Adım: " + steps);
+            manager.notify(1, notification);
         }
     }
 
@@ -133,7 +125,6 @@ public class StepService extends Service implements SensorEventListener {
 
     @Override
     public IBinder onBind(Intent intent) {
-        // Bu servis bind edilmediği için null döner
         return null;
     }
 
