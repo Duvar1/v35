@@ -13,7 +13,7 @@ import { AdPlaceholder } from '../components/AdPlaceholder';
 import { useStepsStore } from '../store/stepsStore';
 import { useUserStore } from '../store/userStore';
 import { Capacitor } from '@capacitor/core';
-import { stepService } from '../services/stepService';
+import { StepCounter } from '../stepCounter'; // Doğrudan StepCounter plugin'ini kullan
 
 export const StepsPage: React.FC = () => {
   const {
@@ -41,15 +41,13 @@ export const StepsPage: React.FC = () => {
   const monthKey = new Date().toISOString().slice(0, 7);
   const monthlyTotal = monthlySteps[monthKey] || 0;
 
-  const handleStepUpdate = useCallback((steps: number) => {
-    console.log('📱 Callback ile adım güncellendi:', steps);
-    updateTodaySteps(steps);
+  const handleStepUpdate = useCallback((data: { stepCount: number }) => {
+    console.log('📱 Adım güncellendi:', data.stepCount);
+    updateTodaySteps(data.stepCount);
   }, [updateTodaySteps]);
 
   useEffect(() => {
     console.log('🔍 Capacitor platform:', Capacitor.getPlatform());
-    
-    stepService.setStepUpdateCallback(handleStepUpdate);
 
     const isAndroid = Capacitor.getPlatform() === 'android';
     setSupported(isAndroid);
@@ -75,27 +73,47 @@ export const StepsPage: React.FC = () => {
       setWeeklySteps(empty);
     }
 
+    // Listener'ı ekle
+    let listener: any = null;
+    
+    const setupListener = async () => {
+      try {
+        listener = await StepCounter.addListener('stepCountUpdate', handleStepUpdate);
+        console.log('✅ Step listener başarıyla eklendi');
+      } catch (error) {
+        console.error('❌ Listener ekleme hatası:', error);
+      }
+    };
+
+    setupListener();
+
     return () => {
-      stepService.cleanup();
+      // Cleanup
+      if (listener) {
+        listener.remove();
+      }
     };
   }, [handleStepUpdate, setSupported, setWeeklySteps, weeklySteps.length]);
 
   const initializeStepCounter = async () => {
     setLoading(true);
     try {
-      const initialized = await stepService.init();
+      const permResult = await StepCounter.checkPermissions();
+      console.log('Permission check result:', permResult);
       
-      if (initialized) {
-        setPermission('granted');
+      setPermission(permResult.hasAllPermissions ? 'granted' : 'prompt');
+      setSupported(permResult.isSensorAvailable);
+      
+      if (permResult.hasAllPermissions && permResult.isSensorAvailable) {
         setIsServiceRunning(true);
         setServiceStarted(true);
         
-        const currentSteps = await stepService.getCurrentStepCount();
-        if (currentSteps > 0) {
-          updateTodaySteps(currentSteps);
+        // Mevcut adım sayısını al
+        const stepResult = await StepCounter.getStepCount();
+        if (stepResult.stepCount > 0) {
+          updateTodaySteps(stepResult.stepCount);
         }
       } else {
-        setPermission('prompt');
         setIsServiceRunning(false);
       }
     } catch (error) {
@@ -112,10 +130,12 @@ export const StepsPage: React.FC = () => {
     setLoading(true);
     
     try {
-      const success = await stepService.requestPermissionAndStart();
+      const requestResult = await StepCounter.requestPermissions();
+      console.log('Permission request result:', requestResult);
       
-      if (success) {
+      if (requestResult.hasAllPermissions) {
         setPermission('granted');
+        await StepCounter.startStepCounting();
         setIsServiceRunning(true);
         setServiceStarted(true);
         console.log('✅ Servis başlatıldı');
@@ -134,7 +154,7 @@ export const StepsPage: React.FC = () => {
   const handleStartService = async () => {
     setLoading(true);
     try {
-      await stepService.startStepCounting();
+      await StepCounter.startStepCounting();
       setIsServiceRunning(true);
       setServiceStarted(true);
       setPermission('granted');
@@ -150,7 +170,7 @@ export const StepsPage: React.FC = () => {
   const handleStopService = async () => {
     setLoading(true);
     try {
-      await stepService.stopStepCounting();
+      await StepCounter.stopStepCounting();
       setIsServiceRunning(false);
       setServiceStarted(false);
       console.log('✅ Step counting durduruldu');
@@ -163,8 +183,14 @@ export const StepsPage: React.FC = () => {
 
   const handleResetSteps = async () => {
     if (confirm('Bugünkü adımları sıfırlamak istediğinize emin misiniz?')) {
-      await stepService.resetStepCount();
-      console.log('🔄 Adımlar sıfırlandı');
+      try {
+        await StepCounter.resetSteps();
+        updateTodaySteps(0);
+        console.log('🔄 Adımlar sıfırlandı');
+      } catch (error) {
+        console.error('Sıfırlama hatası:', error);
+        updateTodaySteps(0);
+      }
     }
   };
 

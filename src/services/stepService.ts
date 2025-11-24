@@ -1,166 +1,139 @@
 import { StepCounter } from '@/stepCounter';
 import { Capacitor } from '@capacitor/core';
+import { useStepsStore } from '../store/stepsStore'; 
+
+// Not: useStepsStore, Zustand'ın dışarıya açtığı tiplere sahiptir.
+// Aşağıdaki StepCounter metodlarının dönüş tiplerinin doğru olması gerekir.
 
 class StepService {
-  private listenerHandle: any = null;
-  private isRunning = false;
-  private stepUpdateCallback: ((steps: number) => void) | null = null;
+    private listenerHandle: any = null;
+    private isRunning: boolean = false; 
+    
+    // Sınıf Alanlarının Tipleri
+    private updateStoreSteps: (steps: number) => void;
+    private setStoreServiceStarted: (started: boolean) => void;
+    private setStorePermission: (permission: 'granted' | 'denied' | 'prompt' | 'unknown') => void;
 
-  setStepUpdateCallback(callback: (steps: number) => void) {
-    this.stepUpdateCallback = callback;
-  }
-
-  async init(): Promise<boolean> {
-    if (!Capacitor.isNativePlatform()) {
-      console.log('Web platformunda çalışıyor, adım sayar devre dışı');
-      return false;
-    }
-
-    try {
-      // İzin kontrolü - Capacitor 7 formatında
-      const permResult = await StepCounter.checkPermissions();
-      
-      if (permResult.activity_recognition !== 'granted') {
-        console.log('İzin yok, kullanıcıdan istenecek');
-        return false;
-      }
-
-      // Listener ekle
-      await this.setupListener();
-
-      // Servisi başlat
-      await this.startStepCounting();
-
-      return true;
-    } catch (error) {
-      console.error('StepService init hatası:', error);
-      return false;
-    }
-  }
-
-  async requestPermissionAndStart(): Promise<boolean> {
-    try {
-      console.log('İzin isteniyor...');
-      const requestResult = await StepCounter.requestPermissions();
-      
-      if (requestResult.activity_recognition !== 'granted') {
-        return false;
-      }
-
-      // Listener ekle
-      await this.setupListener();
-
-      // Servisi başlat
-      await this.startStepCounting();
-
-      return true;
-    } catch (error) {
-      console.error('İzin isteme hatası:', error);
-      return false;
-    }
-  }
-
-  async setupListener(): Promise<void> {
-    try {
-      // Eski listener'ı kaldır
-      if (this.listenerHandle) {
-        // PluginListenerHandle tipinde remove methodu var
-        if (typeof this.listenerHandle.remove === 'function') {
-          this.listenerHandle.remove();
-        }
-      }
-
-      // Yeni listener ekle - Capacitor 7 formatında
-      this.listenerHandle = await StepCounter.addListener('stepCountUpdate', (data: { stepCount: number }) => {
-        console.log('Adım güncellendi:', data.stepCount);
+    constructor() {
+        // Zustand store metotlarını al
+        const state = useStepsStore.getState();
         
-        if (this.stepUpdateCallback) {
-          this.stepUpdateCallback(data.stepCount);
+        this.updateStoreSteps = state.updateTodaySteps;
+        this.setStoreServiceStarted = state.setServiceStarted;
+        this.setStorePermission = state.setPermission;
+        // NOT: subscribe blokları kaldırıldı.
+    }
+
+    async init(): Promise<boolean> {
+        if (!Capacitor.isNativePlatform()) {
+            console.log('Web platformunda çalışıyor, adım sayar devre dışı');
+            return false;
         }
-      });
 
-      console.log('Step listener başarıyla eklendi');
-    } catch (error) {
-      console.error('Listener ekleme hatası:', error);
-    }
-  }
+        try {
+            // 1. İzin Kontrolü
+            // Gelen tipi geçici olarak 'any' yapıyoruz. (requestPermissions ile uyumsuzluk sorunu çözülür)
+            let permResult = await StepCounter.checkPermissions() as any; 
+            this.setStorePermission(permResult.activity_recognition === 'granted' ? 'granted' : 'denied');
 
-  async startStepCounting(): Promise<void> {
-    if (this.isRunning) {
-      console.log('Servis zaten çalışıyor');
-      return;
-    }
+            // 2. İzin yoksa, izin iste
+            if (permResult.activity_recognition !== 'granted' || permResult.notifications !== 'granted') {
+                console.log('İzin yok, kullanıcıdan istenecek');
+                
+                // İzin isteme çağrısı. Gelen tipi yine 'any' olarak atıyoruz.
+                permResult = await StepCounter.requestPermissions() as any; 
+                this.setStorePermission(permResult.activity_recognition === 'granted' ? 'granted' : 'denied');
+            }
+            
+            // Eğer izin halen verilmemişse (requestPermissions'tan sonra)
+            if (permResult.activity_recognition !== 'granted') {
+                console.error('İzin reddedildi, servis başlatılamıyor.');
+                return false;
+            }
 
-    try {
-      const result = await StepCounter.startStepCounting();
-      this.isRunning = true;
-      console.log('Step counting başlatıldı:', result);
-    } catch (error) {
-      console.error('Step counting başlatma hatası:', error);
-      throw error;
-    }
-  }
+            // 3. Listener ekle (Native servisten veri almak için)
+            await this.setupListener();
 
-  async stopStepCounting(): Promise<void> {
-    if (!this.isRunning) {
-      console.log('Servis zaten durdurulmuş');
-      return;
-    }
+            // 4. Servisi başlat (Native kodda StepService.java'yı başlatır)
+            await this.startStepCounting();
 
-    try {
-      await StepCounter.stopStepCounting();
-      this.isRunning = false;
-      console.log('Step counting durduruldu');
-    } catch (error) {
-      console.error('Step counting durdurma hatası:', error);
-    }
-  }
-
-  async getCurrentStepCount(): Promise<number> {
-    try {
-      const result = await StepCounter.getStepCount();
-      return result.stepCount;
-    } catch (error) {
-      console.error('Adım sayısı alma hatası:', error);
-      return 0;
-    }
-  }
-
-  async resetStepCount(): Promise<void> {
-    try {
-      // Capacitor 7'de reset metodu yoksa, local state'i sıfırla
-      if (this.stepUpdateCallback) {
-        this.stepUpdateCallback(0);
-      }
-      console.log('Adımlar sıfırlandı');
-    } catch (error) {
-      console.error('Sıfırlama hatası:', error);
-    }
-  }
-
-  async cleanup(): Promise<void> {
-    try {
-      if (this.listenerHandle) {
-        // PluginListenerHandle tipinde remove methodu var
-        if (typeof this.listenerHandle.remove === 'function') {
-          this.listenerHandle.remove();
+            return true;
+        } catch (error) {
+            console.error('StepService init hatası:', error);
+            return false;
         }
-        this.listenerHandle = null;
-      }
-      this.stepUpdateCallback = null;
-      console.log('Listener temizlendi');
-    } catch (error) {
-      console.error('Cleanup hatası:', error);
     }
-  }
 
-  getStatus(): boolean {
-    return this.isRunning;
-  }
+    async setupListener(): Promise<void> {
+        try {
+            if (this.listenerHandle) {
+                if (typeof this.listenerHandle.remove === 'function') {
+                    this.listenerHandle.remove();
+                }
+            }
 
-  getPermissionStatus(): 'granted' | 'denied' | 'prompt' | 'unknown' {
-    return this.isRunning ? 'granted' : 'unknown';
-  }
+            this.listenerHandle = await StepCounter.addListener('stepCountUpdate', (data: { stepCount: number }) => {
+                console.log('Adım güncellendi:', data.stepCount);
+                
+                // Zustand Store'u güncelle
+                this.updateStoreSteps(data.stepCount); 
+            });
+
+            console.log('Step listener başarıyla eklendi');
+        } catch (error) {
+            console.error('Listener ekleme hatası:', error);
+        }
+    }
+
+    async startStepCounting(): Promise<void> {
+        if (this.isRunning) {
+            console.log('Servis zaten çalışıyor');
+            return;
+        }
+
+        try {
+            const result = await StepCounter.startStepCounting();
+            this.isRunning = true;
+            this.setStoreServiceStarted(true);
+            console.log('Step counting başlatıldı:', result);
+        } catch (error) {
+            console.error('Step counting başlatma hatası:', error);
+            this.setStoreServiceStarted(false);
+            throw error;
+        }
+    }
+
+    async stopStepCounting(): Promise<void> {
+        if (!this.isRunning) {
+            console.log('Servis zaten durdurulmuş');
+            return;
+        }
+
+        try {
+            await StepCounter.stopStepCounting();
+            this.isRunning = false;
+            this.setStoreServiceStarted(false);
+            console.log('Step counting durduruldu');
+        } catch (error) {
+            console.error('Step counting durdurma hatası:', error);
+        }
+    }
+
+    async cleanup(): Promise<void> {
+        try {
+            if (this.listenerHandle) {
+                if (typeof this.listenerHandle.remove === 'function') {
+                    this.listenerHandle.remove();
+                }
+                this.listenerHandle = null;
+            }
+            this.isRunning = false;
+            this.setStoreServiceStarted(false);
+            console.log('Listener temizlendi ve durum sıfırlandı');
+        } catch (error) {
+            console.error('Cleanup hatası:', error);
+        }
+    }
 }
 
 export const stepService = new StepService();

@@ -9,7 +9,7 @@ import com.getcapacitor.annotation.Permission;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.Intent; // Intent eklendi
+import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
 
@@ -26,17 +26,15 @@ import android.util.Log;
         )
     }
 )
-// implements SensorEventListener kaldırıldı
+// Artık SensorEventListener değil
 public class StepCounterPlugin extends Plugin { 
 
     private static final String TAG = "StepCounterPlugin";
     private PluginCall currentCall;
-    // Step sensor initialization ve count değişkenleri kaldırıldı, çünkü artık servis yönetecek
 
     @Override
     public void load() {
         super.load();
-        // SensorManager initialization kaldırıldı
         Log.d(TAG, "StepCounterPlugin yüklendi.");
     }
 
@@ -44,7 +42,7 @@ public class StepCounterPlugin extends Plugin {
     public void startStepCounting(PluginCall call) {
         Log.d(TAG, "startStepCounting çağrıldı");
         
-        // 1. İzin kontrolü
+        // 1. İzin kontrolü ve isteme
         if (!hasAllRequiredPermissions()) {
             Log.d(TAG, "Tüm izinler verilmemiş, izin isteniyor...");
             currentCall = call;
@@ -63,7 +61,7 @@ public class StepCounterPlugin extends Plugin {
         call.resolve(ret);
     }
     
-    // Servis başlatma metodunu ayırdık
+    // Servis başlatma metodu
     private void startStepService() {
         Intent serviceIntent = new Intent(getContext(), StepService.class);
         // Foreground servisini başlat
@@ -89,24 +87,58 @@ public class StepCounterPlugin extends Plugin {
         call.resolve(ret);
     }
 
-    // StepCount metodları: Artık Servis ile iletişim kurmalıdır, ama basitlik için geçici olarak kaldırıldı.
+    // Bu metodun doğru çalışması için Servis ile iletişim (LocalBroadcast) kurulması gerekir.
+    // Şimdilik sadece örnek amaçlı.
     @PluginMethod
     public void getStepCount(PluginCall call) {
-        // Doğru uygulama: StepService'ten adımı almak için LocalBroadcast veya Bind Service kullanılmalı.
         call.reject("Adım sayısını almak için servis iletişimi gerekli. Henüz uygulanmadı.");
     }
 
-    // İzin kontrolleri (Önceki kodunuzdan gelen)
+    // İzin kontrolleri
     @PluginMethod
     public void checkPermissions(PluginCall call) {
-        // ... (checkPermissions kodunuzu koruyun)
+        JSObject ret = new JSObject();
+        
+        boolean hasActivityRecognition = hasPermission(Manifest.permission.ACTIVITY_RECOGNITION);
+        boolean hasNotifications = true;
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            hasNotifications = hasPermission(Manifest.permission.POST_NOTIFICATIONS);
+        }
+        
+        boolean allPermissionsGranted = hasActivityRecognition && hasNotifications;
+        
+        ret.put("activity_recognition", hasActivityRecognition ? "granted" : "denied");
+        ret.put("notifications", hasNotifications ? "granted" : "denied");
+        ret.put("hasAllPermissions", allPermissionsGranted);
+        ret.put("isSensorAvailable", true); // Sensör kontrolü servise devredilebilir
+        ret.put("androidVersion", Build.VERSION.SDK_INT);
+        
+        Log.d(TAG, "checkPermissions - Activity: " + hasActivityRecognition + 
+              ", Notifications: " + hasNotifications +
+              ", All: " + allPermissionsGranted);
+        
+        call.resolve(ret);
     }
-    
+
     @PluginMethod
     public void requestPermissions(PluginCall call) {
-        // ... (requestPermissions kodunuzu koruyun)
+        Log.d(TAG, "requestPermissions çağrıldı");
+        
+        if (hasAllRequiredPermissions()) {
+            JSObject ret = new JSObject();
+            ret.put("activity_recognition", "granted");
+            ret.put("notifications", "granted");
+            ret.put("hasAllPermissions", true);
+            call.resolve(ret);
+        } else {
+            currentCall = call;
+            saveCall(call);
+            requestAllPermissions(call, "activity_recognition", "notifications");
+        }
     }
-    
+
+    // Tüm gerekli izinlerin kontrolü
     private boolean hasAllRequiredPermissions() {
         boolean hasActivityRecognition = hasPermission(Manifest.permission.ACTIVITY_RECOGNITION);
         boolean hasNotifications = true;
@@ -131,15 +163,10 @@ public class StepCounterPlugin extends Plugin {
 
     @PluginMethod
     public void resetSteps(PluginCall call) {
-        // Doğru uygulama: Servise adımı sıfırlama komutu göndermek gerekli.
         call.reject("Adımları sıfırlamak için servis iletişimi gerekli. Henüz uygulanmadı.");
     }
 
-    // SensorEventListener metotları (onSensorChanged, onAccuracyChanged) kaldırıldı
-
-    // handleOnResume ve handleOnPause metodları kaldırıldı
-    
-    // Permission callback (Önceki kodunuzdan gelen)
+    // Permission callback
     @Override
     protected void handleRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.handleRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -147,15 +174,27 @@ public class StepCounterPlugin extends Plugin {
         PluginCall savedCall = getSavedCall();
         if (savedCall != null) {
             JSObject ret = new JSObject();
+            
             boolean allGranted = hasAllRequiredPermissions();
             
-            // ... (İzin sonuçlarını döndüren kodunuzu koruyun)
+            ret.put("activity_recognition", hasPermission(Manifest.permission.ACTIVITY_RECOGNITION) ? "granted" : "denied");
+            
+            boolean hasNotifications = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                hasNotifications = hasPermission(Manifest.permission.POST_NOTIFICATIONS);
+            }
+            ret.put("notifications", hasNotifications ? "granted" : "denied");
+            
+            ret.put("hasAllPermissions", allGranted);
+            ret.put("success", allGranted);
+            
+            Log.d(TAG, "Permission request result - All granted: " + allGranted);
             
             if (allGranted) {
                 savedCall.resolve(ret);
-                // Tüm izinler verildiyse sensörü başlatmak yerine servisi başlat
+                // Tüm izinler verildiyse servisi başlat
                 if ("startStepCounting".equals(savedCall.getMethodName())) {
-                     startStepService(); // 🔥 İzin aldıktan sonra servisi başlat
+                    startStepService();
                 }
             } else {
                 savedCall.reject("Some permissions were denied. Please grant all required permissions.");

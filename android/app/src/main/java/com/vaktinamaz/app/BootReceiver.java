@@ -3,10 +3,10 @@ package com.vaktinamaz.app;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager; // PackageManager eklendi
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
-import android.Manifest; // Manifest eklendi
+import android.Manifest;
 
 public class BootReceiver extends BroadcastReceiver {
     private static final String TAG = "BootReceiver";
@@ -16,7 +16,7 @@ public class BootReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             Log.d(TAG, "Telefon yeniden başlatıldı, izin kontrolü yapılıyor...");
             
-            // 🔥 KRİTİK DÜZELTME: Servis başlatılmadan önce izin kontrolü 🔥
+            // KRİTİK DÜZELTME: Servis başlatılmadan önce izin kontrolü
             if (context.checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED) {
                  Log.d(TAG, "ACTIVITY_RECOGNITION izni verildi. StepService başlatılıyor...");
                  
@@ -29,7 +29,7 @@ public class BootReceiver extends BroadcastReceiver {
                  }
             } else {
                  // İzin verilmediyse servis başlatılamaz
-                 Log.d(TAG, "ACTIVITY_RECOGNITION izni verilmedi. StepService başlatılamadı.");
+                 Log.d(TAG, "ACTIVITY_RECOGNITION izni verilmedi. StepService başlatılamadı. Kullanıcı uygulamayı açmalıdır.");
             }
         }
     }
