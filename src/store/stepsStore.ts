@@ -9,22 +9,22 @@ interface DailySteps {
 interface StepsStore {
   dailyGoal: number;
   todaySteps: number;
-  lastStepCount: number; // YENİ: Sensörden gelen ham değer
+  lastStepCount: number;
   weeklySteps: DailySteps[];
   monthlySteps: Record<string, number>;
   isSupported: boolean;
   permission: 'granted' | 'denied' | 'prompt' | 'unknown';
-  serviceStarted: boolean; // YENİ
+  serviceStarted: boolean;
 
   setDailyGoal: (goal: number) => void;
   updateTodaySteps: (steps: number) => void;
-  setLastStepCount: (count: number) => void; // YENİ
+  setLastStepCount: (count: number) => void;
   addSteps: (steps: number) => void;
   setWeeklySteps: (weeklySteps: DailySteps[]) => void;
   setMonthlySteps: (monthlySteps: Record<string, number>) => void;
   setSupported: (supported: boolean) => void;
   setPermission: (permission: 'granted' | 'denied' | 'prompt' | 'unknown') => void;
-  setServiceStarted: (started: boolean) => void; // YENİ
+  setServiceStarted: (started: boolean) => void;
   saveTodayToWeek: () => void;
   saveTodayToMonth: () => void;
   resetDaily: () => void;
@@ -47,24 +47,23 @@ export const useStepsStore = create<StepsStore>()(
       updateTodaySteps: (steps) => {
         set({ todaySteps: steps });
         
-        // Haftalık güncelle
         const today = new Date().toISOString().split('T')[0];
         const state = get();
+        
+        // Haftalık güncelle
         const updatedWeekly = state.weeklySteps.map(day => 
           day.date === today ? { ...day, steps } : day
         );
         set({ weeklySteps: updatedWeekly });
 
-        // Aylık güncelle (sadece bugünkü adımı kaydet, her güncelleme +1 değil!)
+        // Aylık güncelle
         const monthKey = new Date().toISOString().slice(0, 7);
         const monthlyData = { ...state.monthlySteps };
         
-        // Önce bu ayın eski toplamını al
         const otherDaysTotal = state.weeklySteps
           .filter(d => d.date !== today && d.date.startsWith(monthKey))
           .reduce((sum, d) => sum + d.steps, 0);
         
-        // Şimdiki toplam = diğer günler + bugün
         monthlyData[monthKey] = otherDaysTotal + steps;
         
         set({ monthlySteps: monthlyData });
@@ -102,11 +101,6 @@ export const useStepsStore = create<StepsStore>()(
 
       saveTodayToMonth: () => {
         const state = get();
-        const today = new Date();
-        const monthKey = today.toISOString().slice(0, 7);
-
-        // Aylık toplam zaten updateTodaySteps'te hesaplanıyor
-        // Sadece günü kaydet
         state.saveTodayToWeek();
       },
 
@@ -114,7 +108,7 @@ export const useStepsStore = create<StepsStore>()(
         const state = get();
         state.saveTodayToWeek();
         state.saveTodayToMonth();
-        set({ todaySteps: 0 });
+        set({ todaySteps: 0, lastStepCount: 0 });
       }
     }),
     {

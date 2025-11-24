@@ -13,33 +13,7 @@ import { AdPlaceholder } from '../components/AdPlaceholder';
 import { useStepsStore } from '../store/stepsStore';
 import { useUserStore } from '../store/userStore';
 import { Capacitor } from '@capacitor/core';
-
-// Basit StepService - callback ile çalışan
-class SimpleStepService {
-  private stepUpdateCallback: ((steps: number) => void) | null = null;
-  private isRunning = false;
-
-  setStepUpdateCallback(callback: (steps: number) => void) {
-    this.stepUpdateCallback = callback;
-  }
-
-  // Adım güncellemesini tetikle (test için)
-  simulateStepUpdate(steps: number) {
-    if (this.stepUpdateCallback) {
-      this.stepUpdateCallback(steps);
-    }
-  }
-
-  getStatus() {
-    return this.isRunning;
-  }
-
-  setStatus(running: boolean) {
-    this.isRunning = running;
-  }
-}
-
-export const stepService = new SimpleStepService();
+import { stepService } from '../services/stepService'; // Yeni servis
 
 export const StepsPage: React.FC = () => {
   const {
@@ -53,7 +27,8 @@ export const StepsPage: React.FC = () => {
     setWeeklySteps,
     setSupported,
     setPermission,
-    updateTodaySteps
+    updateTodaySteps,
+    setServiceStarted
   } = useStepsStore();
 
   const { user } = useUserStore();
@@ -63,30 +38,26 @@ export const StepsPage: React.FC = () => {
   const [isServiceRunning, setIsServiceRunning] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 📌 Bu ayın toplam adımı
   const monthKey = new Date().toISOString().slice(0, 7);
   const monthlyTotal = monthlySteps[monthKey] || 0;
 
-  // 📌 Callback fonksiyonu - useCallback ile optimize et
   const handleStepUpdate = useCallback((steps: number) => {
     console.log('📱 Callback ile adım güncellendi:', steps);
     updateTodaySteps(steps);
   }, [updateTodaySteps]);
 
-  // 📌 İlk yükleme
   useEffect(() => {
     console.log('🔍 Capacitor platform:', Capacitor.getPlatform());
     
     // StepService callback'ini set et
     stepService.setStepUpdateCallback(handleStepUpdate);
 
-    // Platform desteğini kontrol et
     const isAndroid = Capacitor.getPlatform() === 'android';
     setSupported(isAndroid);
 
     if (isAndroid) {
       console.log('✅ Android platform, servis kontrol ediliyor...');
-      checkServiceStatus();
+      initializeStepCounter();
     }
 
     // Haftalık veri oluştur
@@ -99,65 +70,40 @@ export const StepsPage: React.FC = () => {
         d.setDate(d.getDate() - i);
         empty.push({
           date: d.toISOString().split("T")[0],
-          steps: Math.floor(Math.random() * 3000) + 1000, // Test verisi
+          steps: Math.floor(Math.random() * 3000) + 1000,
         });
       }
 
       setWeeklySteps(empty);
     }
 
-    // Native adım güncellemelerini dinle
-    const handleNativeStepUpdate = (event: any) => {
-      try {
-        const steps = event.detail.steps;
-        console.log('📱 Native adım güncellendi:', steps);
-        updateTodaySteps(steps);
-      } catch (error) {
-        console.error('❌ Adım güncelleme hatası:', error);
-      }
-    };
-
-    window.addEventListener("stepUpdate", handleNativeStepUpdate);
-    
     return () => {
-      window.removeEventListener("stepUpdate", handleNativeStepUpdate);
+      // Cleanup
+      stepService.cleanup();
     };
-  }, [handleStepUpdate, setSupported, setWeeklySteps, updateTodaySteps, weeklySteps.length]);
+  }, [handleStepUpdate, setSupported, setWeeklySteps, weeklySteps.length]);
 
-  const checkServiceStatus = async () => {
+  const initializeStepCounter = async () => {
     setLoading(true);
     try {
-      // Capacitor plugin kontrolü
-      if (typeof (window as any).Capacitor !== 'undefined') {
-        const { StepCounter } = (window as any).Capacitor.Plugins;
+      const initialized = await stepService.init();
+      
+      if (initialized) {
+        setPermission('granted');
+        setIsServiceRunning(true);
+        setServiceStarted(true);
         
-        if (StepCounter) {
-          // Plugin mevcut, izin kontrol et
-          try {
-            const permResult = await StepCounter.checkPermission();
-            if (permResult.granted) {
-              setPermission('granted');
-              setIsServiceRunning(true);
-              stepService.setStatus(true);
-              console.log('✅ StepCounter plugin mevcut ve izin verilmiş');
-            } else {
-              setPermission('prompt');
-              setIsServiceRunning(false);
-              console.log('✅ StepCounter plugin mevcut ama izin gerekli');
-            }
-          } catch {
-            setPermission('prompt');
-            setIsServiceRunning(false);
-            console.log('✅ StepCounter plugin mevcut ama izin kontrolü başarısız');
-          }
-        } else {
-          setPermission('unknown');
-          setIsServiceRunning(false);
-          console.log('❌ StepCounter plugin bulunamadı');
+        // Mevcut adım sayısını al
+        const currentSteps = await stepService.getCurrentStepCount();
+        if (currentSteps > 0) {
+          updateTodaySteps(currentSteps);
         }
+      } else {
+        setPermission('prompt');
+        setIsServiceRunning(false);
       }
     } catch (error) {
-      console.error('❌ Servis kontrol hatası:', error);
+      console.error('Step counter init hatası:', error);
       setPermission('unknown');
     } finally {
       setLoading(false);
@@ -168,23 +114,22 @@ export const StepsPage: React.FC = () => {
     console.log('📝 İzin isteniyor...');
     setShowPermissionDialog(false);
     setLoading(true);
+    
     try {
-      // Capacitor plugin ile izin iste
-      if (typeof (window as any).Capacitor !== 'undefined') {
-        const { StepCounter } = (window as any).Capacitor.Plugins;
-        
-        if (StepCounter) {
-          await StepCounter.startService();
-          setPermission('granted');
-          setIsServiceRunning(true);
-          stepService.setStatus(true);
-          console.log('✅ Servis başlatıldı');
-        }
+      const success = await stepService.requestPermissionAndStart();
+      
+      if (success) {
+        setPermission('granted');
+        setIsServiceRunning(true);
+        setServiceStarted(true);
+        console.log('✅ Servis başlatıldı');
+      } else {
+        setPermission('denied');
+        alert('İzin reddedildi. Ayarlar > Uygulamalar > İzinler\'den manuel olarak izin verebilirsiniz.');
       }
     } catch (error) {
       console.error('❌ İzin hatası:', error);
       setPermission('denied');
-      alert('İzin reddedildi. Ayarlar > Uygulamalar > İzinler\'den manuel olarak izin verebilirsiniz.');
     } finally {
       setLoading(false);
     }
@@ -193,22 +138,12 @@ export const StepsPage: React.FC = () => {
   const handleStartService = async () => {
     setLoading(true);
     try {
-      if (typeof (window as any).Capacitor !== 'undefined') {
-        const { StepCounter } = (window as any).Capacitor.Plugins;
-        
-        if (StepCounter) {
-          await StepCounter.startService();
-          setIsServiceRunning(true);
-          stepService.setStatus(true);
-          setPermission('granted');
-          
-          // Test için rastgele adım ekle
-          setTimeout(() => {
-            const randomSteps = Math.floor(Math.random() * 1000) + 500;
-            stepService.simulateStepUpdate(todaySteps + randomSteps);
-          }, 1000);
-        }
-      }
+      await stepService.startStepCounting();
+      setIsServiceRunning(true);
+      setServiceStarted(true);
+      setPermission('granted');
+      
+      console.log('✅ Step counting başlatıldı');
     } catch (error) {
       alert('Servis başlatılamadı: ' + error);
     } finally {
@@ -219,15 +154,10 @@ export const StepsPage: React.FC = () => {
   const handleStopService = async () => {
     setLoading(true);
     try {
-      if (typeof (window as any).Capacitor !== 'undefined') {
-        const { StepCounter } = (window as any).Capacitor.Plugins;
-        
-        if (StepCounter) {
-          await StepCounter.stopService();
-          setIsServiceRunning(false);
-          stepService.setStatus(false);
-        }
-      }
+      await stepService.stopStepCounting();
+      setIsServiceRunning(false);
+      setServiceStarted(false);
+      console.log('✅ Step counting durduruldu');
     } catch (error) {
       alert('Servis durdurulamadı: ' + error);
     } finally {
@@ -235,9 +165,9 @@ export const StepsPage: React.FC = () => {
     }
   };
 
-  const handleResetSteps = () => {
+  const handleResetSteps = async () => {
     if (confirm('Bugünkü adımları sıfırlamak istediğinize emin misiniz?')) {
-      updateTodaySteps(0);
+      await stepService.resetStepCount();
       console.log('🔄 Adımlar sıfırlandı');
     }
   };
@@ -299,9 +229,6 @@ export const StepsPage: React.FC = () => {
                 <p className="text-xs text-blue-600 dark:text-blue-300">
                   {isServiceRunning ? '✅ Arka planda çalışıyor' : '⏸️ Durduruldu'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Callback: {stepService.getStatus() ? 'Aktif' : 'Pasif'}
-                </p>
               </div>
               
               <div className="flex gap-2">
@@ -335,16 +262,6 @@ export const StepsPage: React.FC = () => {
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
-
-                {/* Test butonu */}
-                <Button 
-                  onClick={() => stepService.simulateStepUpdate(todaySteps + 100)}
-                  disabled={loading}
-                  size="sm"
-                  variant="outline"
-                >
-                  +100
-                </Button>
               </div>
             </div>
           </CardContent>
@@ -370,7 +287,7 @@ export const StepsPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Today's Steps */}
+      {/* Today's Steps Card */}
       <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30">
         <CardContent className="p-6 text-center">
           <div className="flex items-center justify-center mb-4">

@@ -54,16 +54,18 @@ public class StepService extends Service implements SensorEventListener {
     }
 
     private void createNotificationChannel() {
-        NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "Adım Sayar",
-                NotificationManager.IMPORTANCE_LOW
-        );
-        channel.setDescription("Adım sayar arka planda çalışıyor");
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Adım Sayar",
+                    NotificationManager.IMPORTANCE_LOW
+            );
+            channel.setDescription("Adım sayar arka planda çalışıyor");
 
-        NotificationManager manager = getSystemService(NotificationManager.class);
-        if (manager != null) {
-            manager.createNotificationChannel(channel);
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
         }
     }
 
@@ -79,25 +81,24 @@ public class StepService extends Service implements SensorEventListener {
     }
 
     @Override
-public void onSensorChanged(SensorEvent event) {
-    if (!isInitialized) {
-        initialSteps = event.values[0];
-        isInitialized = true;
-        Log.d(TAG, "İlk adım değeri: " + initialSteps);
-        return;
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
+            if (!isInitialized) {
+                initialSteps = event.values[0];
+                isInitialized = true;
+                Log.d(TAG, "İlk adım değeri: " + initialSteps);
+                return;
+            }
+
+            float currentSteps = event.values[0];
+            int stepsSinceStart = (int) (currentSteps - initialSteps);
+
+            Log.d(TAG, "Yeni adım: " + stepsSinceStart);
+            
+            // Bildirimi güncelle
+            updateNotification(stepsSinceStart);
+        }
     }
-
-    float currentSteps = event.values[0];
-    int stepsSinceStart = (int) (currentSteps - initialSteps);
-
-    Log.d(TAG, "Yeni adım: " + stepsSinceStart);
-    
-    // React'e adım gönder - Capacitor 7 uyumlu
-    StepCounterPlugin.sendStepToJS(stepsSinceStart);
-    
-    // Bildirimi güncelle
-    updateNotification(stepsSinceStart);
-}
 
     private void updateNotification(int steps) {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)

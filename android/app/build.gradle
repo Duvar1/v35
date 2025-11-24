@@ -3,6 +3,13 @@ apply plugin: 'com.android.application'
 android {
     namespace "com.vaktinamaz.app"
     compileSdk rootProject.ext.compileSdkVersion
+    
+    // ✅ JAVA 21 KULLAN - CAPACITOR 7 İLE UYUMLU
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
     defaultConfig {
         applicationId "com.vaktinamaz.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -11,9 +18,7 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
     buildTypes {
@@ -25,6 +30,8 @@ android {
 }
 
 repositories {
+    google()
+    mavenCentral()
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
