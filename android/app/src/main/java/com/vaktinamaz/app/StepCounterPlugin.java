@@ -9,7 +9,6 @@ import com.getcapacitor.annotation.Permission;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -58,12 +57,12 @@ public class StepCounterPlugin extends Plugin implements SensorEventListener {
             return;
         }
 
-        // Tüm gerekli izinleri kontrol et
+        // İzin kontrolü
         if (!hasAllRequiredPermissions()) {
             Log.d(TAG, "All permissions not granted, requesting...");
             currentCall = call;
             saveCall(call);
-            requestAllPermissions(); // Tüm izinleri iste
+            requestAllPermissions(call, "activity_recognition"); // Sadece bir alias kullan
             return;
         }
 
@@ -101,7 +100,7 @@ public class StepCounterPlugin extends Plugin implements SensorEventListener {
         JSObject ret = new JSObject();
         
         boolean hasActivityRecognition = hasPermission(Manifest.permission.ACTIVITY_RECOGNITION);
-        boolean hasNotifications = true; // Android 12 ve altı için her zaman true
+        boolean hasNotifications = true;
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             hasNotifications = hasPermission(Manifest.permission.POST_NOTIFICATIONS);
@@ -135,7 +134,7 @@ public class StepCounterPlugin extends Plugin implements SensorEventListener {
         } else {
             currentCall = call;
             saveCall(call);
-            requestAllPermissions(); // Tüm izinleri iste
+            requestAllPermissions(call, "activity_recognition"); // Sadece bir alias kullan
         }
     }
 
@@ -227,7 +226,13 @@ public class StepCounterPlugin extends Plugin implements SensorEventListener {
             boolean allGranted = hasAllRequiredPermissions();
             
             ret.put("activity_recognition", hasPermission(Manifest.permission.ACTIVITY_RECOGNITION) ? "granted" : "denied");
-            ret.put("notifications", hasPermission(Manifest.permission.POST_NOTIFICATIONS) ? "granted" : "denied");
+            
+            boolean hasNotifications = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                hasNotifications = hasPermission(Manifest.permission.POST_NOTIFICATIONS);
+            }
+            ret.put("notifications", hasNotifications ? "granted" : "denied");
+            
             ret.put("hasAllPermissions", allGranted);
             ret.put("success", allGranted);
             
