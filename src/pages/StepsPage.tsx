@@ -13,7 +13,7 @@ import { AdPlaceholder } from '../components/AdPlaceholder';
 import { useStepsStore } from '../store/stepsStore';
 import { useUserStore } from '../store/userStore';
 import { Capacitor } from '@capacitor/core';
-import { stepService } from '../services/stepService'; // Yeni servis
+import { stepService } from '../services/stepService';
 
 export const StepsPage: React.FC = () => {
   const {
@@ -49,7 +49,6 @@ export const StepsPage: React.FC = () => {
   useEffect(() => {
     console.log('🔍 Capacitor platform:', Capacitor.getPlatform());
     
-    // StepService callback'ini set et
     stepService.setStepUpdateCallback(handleStepUpdate);
 
     const isAndroid = Capacitor.getPlatform() === 'android';
@@ -60,7 +59,6 @@ export const StepsPage: React.FC = () => {
       initializeStepCounter();
     }
 
-    // Haftalık veri oluştur
     if (weeklySteps.length === 0) {
       const today = new Date();
       const empty: any[] = [];
@@ -78,7 +76,6 @@ export const StepsPage: React.FC = () => {
     }
 
     return () => {
-      // Cleanup
       stepService.cleanup();
     };
   }, [handleStepUpdate, setSupported, setWeeklySteps, weeklySteps.length]);
@@ -93,7 +90,6 @@ export const StepsPage: React.FC = () => {
         setIsServiceRunning(true);
         setServiceStarted(true);
         
-        // Mevcut adım sayısını al
         const currentSteps = await stepService.getCurrentStepCount();
         if (currentSteps > 0) {
           updateTodaySteps(currentSteps);
@@ -125,7 +121,7 @@ export const StepsPage: React.FC = () => {
         console.log('✅ Servis başlatıldı');
       } else {
         setPermission('denied');
-        alert('İzin reddedildi. Ayarlar > Uygulamalar > İzinler\'den manuel olarak izin verebilirsiniz.');
+        alert('İzinler reddedildi. Lütfen ayarlardan şu izinleri manuel olarak verin:\n\n• Fiziksel Aktivite\n• Bildirimler (Android 13+)');
       }
     } catch (error) {
       console.error('❌ İzin hatası:', error);
@@ -204,7 +200,9 @@ export const StepsPage: React.FC = () => {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Adım sayar izni reddedildi. Ayarlar &gt; Uygulamalar &gt; İzinler'den "Fiziksel Aktivite" iznini aktif edin.
+            Gerekli izinler reddedildi. Lütfen ayarlardan şu izinleri verin:
+            <br/>• <strong>Fiziksel Aktivite</strong> - Adımları saymak için
+            <br/>• <strong>Bildirimler</strong> - Arka planda çalışmak için (Android 13+)
           </AlertDescription>
         </Alert>
       )}
@@ -273,15 +271,18 @@ export const StepsPage: React.FC = () => {
         <Card className="bg-gradient-to-r from-yellow-100/80 to-orange-100/80 dark:from-yellow-800/60 dark:to-orange-800/60 backdrop-blur-sm border border-yellow-200/50 dark:border-yellow-500/30">
           <CardContent className="p-4 text-center">
             <h3 className="font-light text-yellow-800 dark:text-yellow-200 mb-2">
-              Adım Sayar İzni Gerekli
+              Adım Sayar İzinleri Gerekli
             </h3>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
+              Fiziksel Aktivite + Bildirim izinleri gerekiyor
+            </p>
             <Button 
               onClick={() => setShowPermissionDialog(true)}
               disabled={loading}
               size="sm"
               className="bg-yellow-600 hover:bg-yellow-700"
             >
-              İzin Ver
+              İzinleri Ver
             </Button>
           </CardContent>
         </Card>
@@ -378,13 +379,23 @@ export const StepsPage: React.FC = () => {
       <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>🚶‍♂️ Adım Sayar İzni</DialogTitle>
+            <DialogTitle>🚶‍♂️ Adım Sayar İzinleri</DialogTitle>
             <DialogDescription>
-              Adımlarınızı sayabilmek için "Fiziksel Aktivite" izni gerekiyor. Bu izin sayesinde uygulama arka planda çalışırken bile adımlarınızı takip edebilir.
+              Adımlarınızı sayabilmek için aşağıdaki izinlere ihtiyacımız var:
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-center mb-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                <span><strong>Fiziksel Aktivite</strong> - Adımlarınızı saymak için</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                <span><strong>Bildirimler</strong> - Arka planda çalışabilmek için (Android 13+)</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
               ✅ Arka planda sürekli çalışır<br/>
               ✅ Telefon yeniden başlatılınca otomatik başlar<br/>
               ✅ Pil dostu teknoloji
@@ -395,7 +406,7 @@ export const StepsPage: React.FC = () => {
               Şimdi Değil
             </Button>
             <Button onClick={handlePermissionRequest}>
-              İzin Ver
+              Tüm İzinleri Ver
             </Button>
           </DialogFooter>
         </DialogContent>
