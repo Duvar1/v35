@@ -9,7 +9,11 @@ import com.getcapacitor.annotation.Permission;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Build;
 import android.util.Log;
 
@@ -26,75 +30,71 @@ import android.util.Log;
         )
     }
 )
-// Artık SensorEventListener değil
-public class StepCounterPlugin extends Plugin { 
+public class StepCounterPlugin extends Plugin implements SensorEventListener {
 
     private static final String TAG = "StepCounterPlugin";
+    private SensorManager sensorManager;
+    private Sensor stepSensor;
+    private int stepCount = 0;
     private PluginCall currentCall;
 
     @Override
     public void load() {
         super.load();
-        Log.d(TAG, "StepCounterPlugin yüklendi.");
+        sensorManager = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager != null) {
+            stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            Log.d(TAG, "Step sensor initialized: " + (stepSensor != null));
+        }
     }
 
     @PluginMethod
     public void startStepCounting(PluginCall call) {
-        Log.d(TAG, "startStepCounting çağrıldı");
+        Log.d(TAG, "startStepCounting called");
         
-        // 1. İzin kontrolü ve isteme
-        if (!hasAllRequiredPermissions()) {
-            Log.d(TAG, "Tüm izinler verilmemiş, izin isteniyor...");
-            currentCall = call;
-            saveCall(call);
-            // Tüm izinler için alias listesini ilet
-            requestAllPermissions(call, "activity_recognition", "notifications"); 
+        if (stepSensor == null) {
+            call.reject("Step counter sensor not available on this device");
             return;
         }
 
-        // 2. İzinler verildiyse servisi başlat
-        startStepService();
+        // İzin kontrolü
+        if (!hasAllRequiredPermissions()) {
+            Log.d(TAG, "All permissions not granted, requesting...");
+            currentCall = call;
+            saveCall(call);
+            requestAllPermissions(call, "activity_recognition"); // Sadece bir alias
+            return;
+        }
+
+        startSensorListening();
         
         JSObject ret = new JSObject();
         ret.put("success", true);
-        ret.put("message", "Adım sayma servisi başlatıldı");
+        ret.put("message", "Step counting started");
         call.resolve(ret);
-    }
-    
-    // Servis başlatma metodu
-    private void startStepService() {
-        Intent serviceIntent = new Intent(getContext(), StepService.class);
-        // Foreground servisini başlat
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getContext().startForegroundService(serviceIntent);
-        } else {
-            getContext().startService(serviceIntent);
-        }
-        Log.d(TAG, "StepService başlatma çağrısı yapıldı.");
     }
 
     @PluginMethod
     public void stopStepCounting(PluginCall call) {
-        Log.d(TAG, "stopStepCounting çağrıldı");
+        Log.d(TAG, "stopStepCounting called");
         
-        // Servisi durdur
-        Intent serviceIntent = new Intent(getContext(), StepService.class);
-        getContext().stopService(serviceIntent);
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(this);
+        }
         
         JSObject ret = new JSObject();
         ret.put("success", true);
-        ret.put("message", "Adım sayma servisi durduruldu");
+        ret.put("message", "Step counting stopped");
         call.resolve(ret);
     }
 
-    // Bu metodun doğru çalışması için Servis ile iletişim (LocalBroadcast) kurulması gerekir.
-    // Şimdilik sadece örnek amaçlı.
     @PluginMethod
     public void getStepCount(PluginCall call) {
-        call.reject("Adım sayısını almak için servis iletişimi gerekli. Henüz uygulanmadı.");
+        JSObject ret = new JSObject();
+        ret.put("stepCount", stepCount);
+        call.resolve(ret);
     }
 
-    // İzin kontrolleri
     @PluginMethod
     public void checkPermissions(PluginCall call) {
         JSObject ret = new JSObject();
@@ -111,7 +111,7 @@ public class StepCounterPlugin extends Plugin {
         ret.put("activity_recognition", hasActivityRecognition ? "granted" : "denied");
         ret.put("notifications", hasNotifications ? "granted" : "denied");
         ret.put("hasAllPermissions", allPermissionsGranted);
-        ret.put("isSensorAvailable", true); // Sensör kontrolü servise devredilebilir
+        ret.put("isSensorAvailable", stepSensor != null);
         ret.put("androidVersion", Build.VERSION.SDK_INT);
         
         Log.d(TAG, "checkPermissions - Activity: " + hasActivityRecognition + 
@@ -123,7 +123,7 @@ public class StepCounterPlugin extends Plugin {
 
     @PluginMethod
     public void requestPermissions(PluginCall call) {
-        Log.d(TAG, "requestPermissions çağrıldı");
+        Log.d(TAG, "requestPermissions called");
         
         if (hasAllRequiredPermissions()) {
             JSObject ret = new JSObject();
@@ -134,7 +134,7 @@ public class StepCounterPlugin extends Plugin {
         } else {
             currentCall = call;
             saveCall(call);
-            requestAllPermissions(call, "activity_recognition", "notifications");
+            requestAllPermissions(call, "activity_recognition"); // Sadece bir alias
         }
     }
 
@@ -163,10 +163,58 @@ public class StepCounterPlugin extends Plugin {
 
     @PluginMethod
     public void resetSteps(PluginCall call) {
-        call.reject("Adımları sıfırlamak için servis iletişimi gerekli. Henüz uygulanmadı.");
+        stepCount = 0;
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        ret.put("message", "Steps reset to zero");
+        call.resolve(ret);
     }
 
-    // Permission callback
+    private void startSensorListening() {
+        if (sensorManager != null && stepSensor != null) {
+            boolean registered = sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            Log.d(TAG, "Sensor listener registered: " + registered);
+        }
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
+            int newStepCount = (int) event.values[0];
+            
+            if (newStepCount != stepCount) {
+                stepCount = newStepCount;
+                Log.d(TAG, "Step count updated: " + stepCount);
+                
+                JSObject ret = new JSObject();
+                ret.put("stepCount", stepCount);
+                notifyListeners("stepCountUpdate", ret);
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // Do nothing
+    }
+
+    @Override
+    protected void handleOnResume() {
+        super.handleOnResume();
+        if (hasAllRequiredPermissions() && stepSensor != null) {
+            startSensorListening();
+        }
+    }
+
+    @Override
+    protected void handleOnPause() {
+        super.handleOnPause();
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(this);
+        }
+    }
+
+    // Permission callback - Capacitor 7
     @Override
     protected void handleRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.handleRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -192,9 +240,9 @@ public class StepCounterPlugin extends Plugin {
             
             if (allGranted) {
                 savedCall.resolve(ret);
-                // Tüm izinler verildiyse servisi başlat
+                // Tüm izinler verildiyse sensörü başlat
                 if ("startStepCounting".equals(savedCall.getMethodName())) {
-                    startStepService();
+                    startSensorListening();
                 }
             } else {
                 savedCall.reject("Some permissions were denied. Please grant all required permissions.");
