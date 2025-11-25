@@ -1,3 +1,4 @@
+// capacitor.config.ts
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
@@ -8,8 +9,10 @@ const config: CapacitorConfig = {
     androidScheme: 'https'
   },
   plugins: {
-    StepCounter: {  // ✅ DOĞRU
-      // Adım sayar ayarları
+    GoogleAuth: {
+      scopes: ['profile', 'email', 'https://www.googleapis.com/auth/fitness.activity.read'],
+      serverClientId: '363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true
     }
   }
 };
