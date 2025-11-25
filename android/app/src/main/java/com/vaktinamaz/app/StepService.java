@@ -1,133 +1,29 @@
-package com.vaktinamaz.app;
+import { CapacitorConfig } from "@capacitor/cli";
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.Service;
-import android.content.Context;
-import android.content.Intent;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-import android.os.IBinder;
-import android.util.Log;
+const config: CapacitorConfig = {
+  appId: "com.vaktinamaz.app",
+  appName: "Vaktinamaz",
+  webDir: "dist",
+  bundledWebRuntime: false,
 
-import androidx.core.app.NotificationCompat;
+  android: {
+    buildOptions: {
+      keystorePath: "release-key.keystore",
+    },
 
-public class StepService extends Service implements SensorEventListener {
+    // Google Fit için gerekli ayar
+    webContentsDebuggingEnabled: true
+  },
 
-    private SensorManager sensorManager;
-    private Sensor stepSensor;
-    private float initialSteps = 0f;
-    private boolean isInitialized = false;
+  plugins: {
+    GoogleFit: {
+      scopes: [
+        "https://www.googleapis.com/auth/fitness.activity.read",
+        "https://www.googleapis.com/auth/fitness.activity.write",
+        "https://www.googleapis.com/auth/fitness.location.read",
+      ],
+    },
+  },
+};
 
-    private static final String TAG = "StepService";
-    private static final String CHANNEL_ID = "step_counter_channel";
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        Log.d(TAG, "StepService oluşturuldu");
-        
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        if (sensorManager != null) {
-            stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-        }
-
-        createNotificationChannel();
-        startForegroundService();
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "StepService başlatıldı");
-        
-        if (stepSensor != null) {
-            sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI);
-            Log.d(TAG, "Adım sensörü dinleniyor");
-        } else {
-            Log.e(TAG, "Adım sensörü bulunamadı!");
-        }
-
-        return START_STICKY;
-    }
-
-    private void createNotificationChannel() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Adım Sayar",
-                    NotificationManager.IMPORTANCE_LOW
-            );
-            channel.setDescription("Adım sayar arka planda çalışıyor");
-
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(channel);
-            }
-        }
-    }
-
-    private void startForegroundService() {
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID) // DÜZELTİLDİ: "new new" yerine "new"
-                .setContentTitle("Adım Sayar Çalışıyor")
-                .setContentText("Adımlarınız sayılıyor...")
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build();
-
-        startForeground(1, notification);
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
-            if (!isInitialized) {
-                initialSteps = event.values[0];
-                isInitialized = true;
-                Log.d(TAG, "İlk adım değeri: " + initialSteps);
-                return;
-            }
-
-            float currentSteps = event.values[0];
-            int stepsSinceStart = (int) (currentSteps - initialSteps);
-
-            Log.d(TAG, "Yeni adım: " + stepsSinceStart);
-            
-            // Bildirimi güncelle
-            updateNotification(stepsSinceStart);
-        }
-    }
-
-    private void updateNotification(int steps) {
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID) // DÜZELTİLDİ: "new new" yerine "new"
-                .setContentTitle("Adım Sayar")
-                .setContentText("Toplam Adım: " + steps)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build();
-
-        NotificationManager manager = getSystemService(NotificationManager.class);
-        if (manager != null) {
-            manager.notify(1, notification);
-        }
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (sensorManager != null) {
-            sensorManager.unregisterListener(this);
-        }
-        Log.d(TAG, "StepService durduruldu");
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-}
+export default config;

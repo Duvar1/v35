@@ -7,8 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import { googleFitService } from '../services/googleFitService';
-
 import { StepChart } from '../components/StepChart';
 import { AdPlaceholder } from '../components/AdPlaceholder';
 
