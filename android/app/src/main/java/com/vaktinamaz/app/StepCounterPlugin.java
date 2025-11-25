@@ -1,9 +1,12 @@
 package com.vaktinamaz.app;
 
+import android.content.Intent;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.PluginMethod;
 
 @CapacitorPlugin(name = "StepCounter")
 public class StepCounterPlugin extends Plugin {
@@ -23,7 +26,6 @@ public class StepCounterPlugin extends Plugin {
     public void startStepCounting(PluginCall call) {
         Intent service = new Intent(getContext(), StepService.class);
         getContext().startForegroundService(service);
-
         call.resolve();
     }
 
@@ -31,7 +33,6 @@ public class StepCounterPlugin extends Plugin {
     public void stopStepCounting(PluginCall call) {
         Intent service = new Intent(getContext(), StepService.class);
         getContext().stopService(service);
-
         call.resolve();
     }
 }
