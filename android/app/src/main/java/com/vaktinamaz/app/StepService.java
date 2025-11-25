@@ -2,8 +2,8 @@ package com.vaktinamaz.app;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
+import android.app.PendingIntent;
 
 import android.content.Intent;
 import android.hardware.Sensor;
@@ -18,6 +18,9 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 
 import com.getcapacitor.JSObject;
+
+// ❗ Eksik olan import EKLENDİ
+import com.vaktinamaz.app.R;
 
 public class StepService extends Service implements SensorEventListener {
 
@@ -47,9 +50,9 @@ public class StepService extends Service implements SensorEventListener {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    channelId,
-                    "Step Counter",
-                    NotificationManager.IMPORTANCE_LOW
+                channelId,
+                "Step Counter",
+                NotificationManager.IMPORTANCE_LOW
             );
 
             NotificationManager manager = getSystemService(NotificationManager.class);
@@ -57,9 +60,9 @@ public class StepService extends Service implements SensorEventListener {
         }
 
         NotificationCompat.Builder notification = new NotificationCompat.Builder(this, channelId)
-                .setContentTitle("Adım Sayar Çalışıyor")
-                .setContentText("Arka planda adımlar takip ediliyor")
-                .setSmallIcon(R.mipmap.ic_launcher);
+            .setContentTitle("Adım Sayar Çalışıyor")
+            .setContentText("Arka planda adımlar takip ediliyor")
+            .setSmallIcon(R.mipmap.ic_launcher);
 
         startForeground(1, notification.build());
     }

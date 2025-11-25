@@ -7,10 +7,8 @@ const config: CapacitorConfig = {
 
   android: {
     buildOptions: {
-      keystorePath: "release-key.keystore",
+      keystorePath: "./release-key.keystore",   // 🔥 DOĞRU YER
     },
-
-    // Google Fit için gerekli ayar
     webContentsDebuggingEnabled: true
   },
 
