@@ -12,7 +12,24 @@ export default defineConfig(({ mode }) => ({
     react(),
   ],
   server: {
-    watch: { usePolling: true, interval: 800 /* 300~1500 */ },
+    watch: { usePolling: true, interval: 800 },
+    // 🔥 BU 3 SATIRI EKLEYİN - 404 ÇÖZÜMÜ
+    host: true,
+    port: 3000,
+    historyApiFallback: true,
+  },
+  // 🔥 BUILD AYARLARINI DA EKLEYELİM
+  build: {
+    outDir: 'dist',
+    sourcemap: mode === 'development',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-select'],
+        }
+      }
+    }
   },
   resolve: {
     alias: {
