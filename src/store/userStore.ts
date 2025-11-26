@@ -42,7 +42,7 @@ interface UserStore {
   setGoogleFitUserId: (id: string | null) => void;
   setGoogleAccessToken: (token: string | null) => void;
 
-  // Genel logout
+  // Logout
   logout: () => void;
 }
 
@@ -52,26 +52,26 @@ export const useUserStore = create<UserStore>()(
       user: null,
       isAuthenticated: false,
 
-      // Kullanıcıyı tamamen ekler
+      // ➤ Kullanıcıyı tamamen oluşturur
       setUser: (user) =>
         set({
           user,
           isAuthenticated: true,
         }),
 
-      // Güncelleme (premium, google fit, davet vb)
+      // ➤ Kullanıcıyı günceller (hiçbir şekilde user'ı null yapmaz)
       updateUser: (updates) =>
         set((state) => ({
-          user: state.user ? { ...state.user, ...updates } : null,
+          user: state.user ? { ...state.user, ...updates } : state.user,
         })),
 
-      // Premium güncelle
+      // ➤ Premium güncelle
       updatePremiumStatus: (v) =>
         set((state) => ({
-          user: state.user ? { ...state.user, isPremium: v } : null,
+          user: state.user ? { ...state.user, isPremium: v } : state.user,
         })),
 
-      // Davet güncelle
+      // ➤ Davet sistemi güncelle
       updateInviteStats: (totalInvited, successfulInvites) =>
         set((state) => ({
           user: state.user
@@ -83,9 +83,10 @@ export const useUserStore = create<UserStore>()(
                 referralCount: totalInvited,
                 referralEarnings: successfulInvites * 20,
               }
-            : null,
+            : state.user,
         })),
 
+      // ➤ Referral kod üret
       generateReferralCode: () => {
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         let result = "";
@@ -95,25 +96,25 @@ export const useUserStore = create<UserStore>()(
         return result;
       },
 
-      // Google Fit Yetkisi
+      // ➤ Google Fit: kullanıcı yoksa hiçbir şey yapma (user'ı asla null yapmaz)
       setGoogleFitAuthorized: (v) =>
         set((state) => ({
           user: state.user
             ? { ...state.user, isGoogleFitAuthorized: v }
-            : null,
+            : state.user,
         })),
 
       setGoogleFitUserId: (id) =>
         set((state) => ({
-          user: state.user ? { ...state.user, googleFitUserId: id } : null,
+          user: state.user ? { ...state.user, googleFitUserId: id } : state.user,
         })),
 
       setGoogleAccessToken: (token) =>
         set((state) => ({
-          user: state.user ? { ...state.user, googleAccessToken: token } : null,
+          user: state.user ? { ...state.user, googleAccessToken: token } : state.user,
         })),
 
-      // Global Logout
+      // ➤ Tamamen logout
       logout: () =>
         set({
           user: null,

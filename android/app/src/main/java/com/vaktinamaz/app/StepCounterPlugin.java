@@ -16,19 +16,22 @@ public class StepCounterPlugin extends Plugin {
         instance = this;
     }
 
+    @Override
+    public void load() {
+        super.load();
+    }
+
     public static void sendStepEvent(JSObject data) {
         if (instance == null) return;
         instance.notifyListeners("stepCountUpdate", data);
     }
 
-    // @PluginMethod — GEREKMEZ, SİLİNDİ
     public void startStepCounting(PluginCall call) {
         Intent service = new Intent(getContext(), StepService.class);
         getContext().startForegroundService(service);
         call.resolve();
     }
 
-    // @PluginMethod — GEREKMEZ, SİLİNDİ
     public void stopStepCounting(PluginCall call) {
         Intent service = new Intent(getContext(), StepService.class);
         getContext().stopService(service);
