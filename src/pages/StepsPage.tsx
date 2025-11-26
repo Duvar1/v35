@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Footprints, Award, CalendarDays, Target, Play, Square, RotateCcw } from 'lucide-react';
+import { Footprints, Award, CalendarDays, Target, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 import { StepChart } from '../components/StepChart';
 import { AdPlaceholder } from '../components/AdPlaceholder';
@@ -31,8 +32,6 @@ export const StepsPage: React.FC = () => {
   const { user } = useUserStore();
   const [newGoal, setNewGoal] = useState(dailyGoal.toString());
   const [showGoalDialog, setShowGoalDialog] = useState(false);
-  const [isServiceRunning, setIsServiceRunning] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const monthKey = new Date().toISOString().slice(0, 7);
   const monthlyTotal = monthlySteps[monthKey] || 0;
@@ -48,11 +47,20 @@ export const StepsPage: React.FC = () => {
     const isAndroid = Capacitor.getPlatform() === 'android';
     setSupported(isAndroid);
 
+    // Google giriş bildirimi
+    if (user?.isGoogleFitAuthorized && user?.email) {
+      toast.success(`✅ Google Fit bağlantısı başarılı!`, {
+        description: `${user.email} ile giriş yapıldı`,
+        duration: 4000,
+      });
+    }
+
     if (isAndroid) {
-      console.log('✅ Android platform, servis kontrol ediliyor...');
+      console.log('✅ Android platform, servis başlatılıyor...');
       initializeStepCounter();
     }
 
+    // Mock haftalık veri
     if (weeklySteps.length === 0) {
       const today = new Date();
       const empty: any[] = [];
@@ -65,11 +73,10 @@ export const StepsPage: React.FC = () => {
           steps: Math.floor(Math.random() * 3000) + 1000,
         });
       }
-
       setWeeklySteps(empty);
     }
 
-    // Listener'ı ekle
+    // Adım listener'ı
     let listener: any = null;
     
     const setupListener = async () => {
@@ -84,15 +91,13 @@ export const StepsPage: React.FC = () => {
     setupListener();
 
     return () => {
-      // Cleanup
       if (listener) {
         listener.remove();
       }
     };
-  }, [handleStepUpdate, setSupported, setWeeklySteps, weeklySteps.length]);
+  }, [handleStepUpdate, setSupported, setWeeklySteps, weeklySteps.length, user]);
 
   const initializeStepCounter = async () => {
-    setLoading(true);
     try {
       const permResult = await StepCounter.checkPermissions();
       console.log('Permission check result:', permResult);
@@ -100,81 +105,54 @@ export const StepsPage: React.FC = () => {
       setSupported(permResult.isSensorAvailable);
       
       if (permResult.hasAllPermissions && permResult.isSensorAvailable) {
-        setIsServiceRunning(true);
+        // Otomatik başlat
+        await StepCounter.startStepCounting();
         setServiceStarted(true);
         
-        // Mevcut adım sayısını al
+        // Mevcut adımları al
         const stepResult = await StepCounter.getStepCount();
         if (stepResult.stepCount > 0) {
           updateTodaySteps(stepResult.stepCount);
         }
+        
+        console.log('✅ Adım sayar servisi otomatik başlatıldı');
       } else {
-        setIsServiceRunning(false);
-        // 🔥 İZİN OTOMATİK İSTENİYOR - KULLANICIYA GÖSTERMİYORUZ
+        // Otomatik izin iste
         await handleAutoPermissionRequest();
       }
     } catch (error) {
       console.error('Step counter init hatası:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  // 🔥 OTOMATİK İZİN İSTE - KULLANICIYA GÖSTERME
   const handleAutoPermissionRequest = async () => {
     console.log('🔄 Otomatik izin isteniyor...');
     
     try {
       const requestResult = await StepCounter.requestPermissions();
-      console.log('Auto permission result:', requestResult);
       
       if (requestResult.hasAllPermissions) {
         await StepCounter.startStepCounting();
-        setIsServiceRunning(true);
         setServiceStarted(true);
-        console.log('✅ Servis otomatik başlatıldı');
-      } else {
-        console.log('⚠️ İzinler otomatik verilmedi, servis başlatılmadı');
+        
+        toast.info('🔐 Adım sayar izinleri verildi', {
+          description: 'Adımlarınız otomatik olarak sayılmaya başlandı',
+          duration: 3000,
+        });
       }
     } catch (error) {
       console.error('❌ Otomatik izin hatası:', error);
     }
   };
 
-  const handleStartService = async () => {
-    setLoading(true);
-    try {
-      await StepCounter.startStepCounting();
-      setIsServiceRunning(true);
-      setServiceStarted(true);
-      console.log('✅ Step counting başlatıldı');
-    } catch (error) {
-      console.error('Servis başlatılamadı:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStopService = async () => {
-    setLoading(true);
-    try {
-      await StepCounter.stopStepCounting();
-      setIsServiceRunning(false);
-      setServiceStarted(false);
-      console.log('✅ Step counting durduruldu');
-    } catch (error) {
-      console.error('Servis durdurulamadı:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleResetSteps = async () => {
     if (confirm('Bugünkü adımları sıfırlamak istediğinize emin misiniz?')) {
       try {
-        await StepCounter.resetSteps();
+        if (StepCounter.resetSteps) {
+          await StepCounter.resetSteps();
+        }
         updateTodaySteps(0);
-        console.log('🔄 Adımlar sıfırlandı');
+        toast.info('Adımlar sıfırlandı');
       } catch (error) {
         console.error('Sıfırlama hatası:', error);
         updateTodaySteps(0);
@@ -187,6 +165,7 @@ export const StepsPage: React.FC = () => {
     if (goal >= 1000 && goal <= 50000) {
       setDailyGoal(goal);
       setShowGoalDialog(false);
+      toast.success(`Hedef ${goal.toLocaleString()} adım olarak güncellendi`);
     }
   };
 
@@ -195,79 +174,44 @@ export const StepsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900 p-4 space-y-6">
-
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-light text-pink-800 dark:text-purple-200">Adımlarım</h1>
         <p className="text-pink-600 dark:text-purple-400 font-light">Günlük adım hedefinizi takip edin</p>
+        
+        {/* Google Fit Durum */}
+        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs ${
+          user?.isGoogleFitAuthorized 
+            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+        }`}>
+          {user?.isGoogleFitAuthorized ? (
+            <>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              ✅ Google Fit Bağlı - {user.email}
+            </>
+          ) : (
+            <>
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+              ⚠️ Google Fit Bağlı Değil
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Top Ad */}
+      {/* Reklam */}
       {!user?.isPremium && (
         <div className="w-full">
           <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
         </div>
       )}
 
-      {/* 🔥 İZİN ALANLARI KALDIRILDI - SADECE SERVİS KONTROLÜ GÖSTERİLİYOR */}
-
-      {/* Service Controls - Sadece Android'de göster */}
-      {isSupported && (
-        <Card className="bg-gradient-to-r from-blue-100/80 to-cyan-100/80 dark:from-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border border-blue-200/50 dark:border-blue-500/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-light text-blue-800 dark:text-blue-200">Adım Sayar Servisi</h3>
-                <p className="text-xs text-blue-600 dark:text-blue-300">
-                  {isServiceRunning ? '✅ Arka planda çalışıyor' : '⏸️ Durduruldu'}
-                </p>
-              </div>
-              
-              <div className="flex gap-2">
-                {!isServiceRunning ? (
-                  <Button 
-                    onClick={handleStartService} 
-                    disabled={loading}
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Play className="h-4 w-4 mr-1" />
-                    Başlat
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleStopService} 
-                    disabled={loading}
-                    size="sm"
-                    variant="destructive"
-                  >
-                    <Square className="h-4 w-4 mr-1" />
-                    Durdur
-                  </Button>
-                )}
-                
-                <Button 
-                  onClick={handleResetSteps}
-                  disabled={loading}
-                  size="sm"
-                  variant="outline"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Today's Steps Card */}
+      {/* Bugünkü Adımlar */}
       <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30">
         <CardContent className="p-6 text-center">
           <div className="flex items-center justify-center mb-4">
             <Footprints className="h-8 w-8 text-pink-600 dark:text-purple-300 mr-2" />
-            <h2 className="text-lg font-light text-pink-800 dark:text-purple-200">
-              Bugünkü Adımlar
-            </h2>
+            <h2 className="text-lg font-light text-pink-800 dark:text-purple-200">Bugünkü Adımlar</h2>
           </div>
 
           <div className="text-5xl font-light text-pink-700 dark:text-purple-100 mb-2">
@@ -277,9 +221,7 @@ export const StepsPage: React.FC = () => {
           <Progress value={progressPercentage} className="h-3 bg-pink-200/50 dark:bg-purple-700/30" />
 
           <div className="flex items-center justify-between text-sm mt-2">
-            <span className="text-pink-600 dark:text-purple-300 font-light">
-              Hedef: {dailyGoal.toLocaleString()}
-            </span>
+            <span className="text-pink-600 dark:text-purple-300 font-light">Hedef: {dailyGoal.toLocaleString()}</span>
             <span className={`${isGoalAchieved ? 'text-green-600' : 'text-pink-600 dark:text-purple-300'} font-light`}>
               %{Math.round(progressPercentage)}
             </span>
@@ -292,42 +234,51 @@ export const StepsPage: React.FC = () => {
             </div>
           )}
 
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowGoalDialog(true)}
-            className="mt-4 border-pink-300 text-pink-700 hover:bg-pink-50 dark:border-purple-600 dark:text-purple-300"
-          >
-            <Target className="h-4 w-4 mr-1" />
-            Hedefi Değiştir
-          </Button>
+          <div className="flex gap-2 mt-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowGoalDialog(true)}
+              className="flex-1 border-pink-300 text-pink-700 hover:bg-pink-50 dark:border-purple-600 dark:text-purple-300"
+            >
+              <Target className="h-4 w-4 mr-1" />
+              Hedefi Değiştir
+            </Button>
+            
+            <Button 
+              onClick={handleResetSteps}
+              size="sm"
+              variant="outline"
+              className="border-pink-300 text-pink-700 hover:bg-pink-50 dark:border-purple-600 dark:text-purple-300"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* MONTHLY TOTAL */}
+      {/* Aylık Toplam */}
       <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border-l-4 border-l-purple-400 border border-pink-200/50 dark:border-purple-500/30">
         <CardContent className="p-4">
           <div className="flex items-center space-x-2 mb-1">
             <CalendarDays className="h-5 w-5 text-purple-600 dark:text-purple-300" />
             <h3 className="font-light text-pink-800 dark:text-purple-200">Bu Ayki Toplam Adım</h3>
           </div>
-          <p className="text-3xl font-light text-purple-700 dark:text-purple-300">
-            {monthlyTotal.toLocaleString()}
-          </p>
+          <p className="text-3xl font-light text-purple-700 dark:text-purple-300">{monthlyTotal.toLocaleString()}</p>
         </CardContent>
       </Card>
 
-      {/* Middle Ad */}
+      {/* Reklam */}
       {!user?.isPremium && (
         <div className="w-full">
           <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
         </div>
       )}
 
-      {/* Weekly Chart */}
+      {/* Haftalık Grafik */}
       <StepChart weeklySteps={weeklySteps} dailyGoal={dailyGoal} />
 
-      {/* Motivational */}
+      {/* Motivasyon */}
       <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border-l-4 border-l-green-400 border border-pink-200/50 dark:border-purple-500/30">
         <CardContent className="p-4">
           <h3 className="font-light mb-2 text-pink-800 dark:text-purple-200">💪 Günün Motivasyonu</h3>
@@ -340,23 +291,19 @@ export const StepsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Bottom Ad */}
+      {/* Reklam */}
       {!user?.isPremium && (
         <div className="w-full mt-6 pb-4">
           <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
         </div>
       )}
 
-      {/* 🔥 İZİN DİALOG'U KALDIRILDI */}
-
       {/* Hedef Dialog */}
       <Dialog open={showGoalDialog} onOpenChange={setShowGoalDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Günlük Adım Hedefi</DialogTitle>
-            <DialogDescription>
-              Günlük adım hedefinizi ayarlayın (1000-50000)
-            </DialogDescription>
+            <DialogDescription>Günlük adım hedefinizi ayarlayın (1000-50000)</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Input
@@ -369,12 +316,8 @@ export const StepsPage: React.FC = () => {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGoalDialog(false)}>
-              İptal
-            </Button>
-            <Button onClick={handleGoalUpdate}>
-              Kaydet
-            </Button>
+            <Button variant="outline" onClick={() => setShowGoalDialog(false)}>İptal</Button>
+            <Button onClick={handleGoalUpdate}>Kaydet</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

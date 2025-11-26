@@ -1,10 +1,12 @@
 import { registerPlugin } from '@capacitor/core';
 
 export interface StepCounterPlugin {
+  // Ana method'lar
   startStepCounting(): Promise<{ success: boolean; message: string }>;
   stopStepCounting(): Promise<{ success: boolean; message: string }>;
   getStepCount(): Promise<{ stepCount: number }>;
   
+  // Permission method'ları
   checkPermissions(): Promise<{ 
     activity_recognition: string;
     notifications: string;
@@ -20,13 +22,13 @@ export interface StepCounterPlugin {
     success: boolean;
   }>;
   
+  // Listener
   addListener(
     eventName: 'stepCountUpdate',
     listenerFunc: (data: { stepCount: number }) => void,
   ): Promise<any>;
   
-  startService?(): Promise<{ success: boolean; message: string }>;
-  stopService?(): Promise<{ success: boolean; message: string }>;
+  // Opsiyonel - eğer native'de varsa
   resetSteps?(): Promise<{ success: boolean; message: string }>;
 }
 
