@@ -13,20 +13,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      console.log('🔄 Google girişi başlatılıyor...');
+      console.log('🔄 Login butonuna tıklandı...');
       const success = await onLogin();
       
       if (success) {
-        console.log('✅ Giriş başarılı, StepsPage yönlendiriliyor');
-        // Başarılı girişte steps sayfasına yönlendir
+        console.log('✅ Giriş başarılı! StepsPage yönlendiriliyor...');
         navigate('/steps', { replace: true });
       } else {
-        console.error('❌ Giriş başarısız');
-        alert('Google girişi başarısız. Lütfen tekrar deneyin.');
+        console.log('❌ Giriş başarısız (false döndü)');
+        alert('Giriş işlemi iptal edildi.');
       }
-    } catch (error) {
-      console.error('Giriş hatası:', error);
-      alert('Giriş sırasında bir hata oluştu: ' + error);
+    } catch (error: any) {
+      console.error('💥 Giriş hatası:', error);
+      alert('Giriş sırasında bir hata oluştu: ' + error.message);
     } finally {
       setLoading(false);
     }

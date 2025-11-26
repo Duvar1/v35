@@ -1,74 +1,71 @@
 import { useUserStore } from "../store/userStore";
 
-const fitnessScopes = [
-  "https://www.googleapis.com/auth/fitness.activity.read",
-  "https://www.googleapis.com/auth/fitness.location.read",
-];
-
-declare const google: any;
-
-export const googleFitLogin = async () => {
+export const googleFitLogin = async (): Promise<boolean> => {
   try {
     const { user, setUser, updateUser } = useUserStore.getState();
 
-    return new Promise<boolean>((resolve) => {
-      google.accounts.oauth2
-        .initTokenClient({
-          client_id:
-            "363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com",
-          scope: fitnessScopes.join(" "),
-          prompt: "consent",
+    console.log('🔄 Google Fit girişi başlatılıyor...');
 
-          callback: async (tokenResponse: any) => {
-            if (!tokenResponse?.access_token) {
-              resolve(false);
-              return;
-            }
+    // Önce mock girişle test edelim
+    console.log('🧪 Mock giriş deniyorum...');
 
-            // Google kullanıcı bilgisi
-            const res = await fetch(
-              "https://www.googleapis.com/oauth2/v3/userinfo",
-              {
-                headers: {
-                  Authorization: `Bearer ${tokenResponse.access_token}`,
-                },
-              }
-            );
+    const mockUserData = {
+      id: 'test-user-' + Date.now(),
+      email: 'test@vaktinamaz.com', 
+      name: 'Test Kullanıcı',
+      accessToken: 'mock-token-' + Date.now()
+    };
 
-            const userInfo = await res.json();
+    // Referral code generator
+    const generateReferralCode = (): string => {
+      return Math.random().toString(36).substring(2, 8).toUpperCase();
+    };
 
-            // Eğer kullanıcı yoksa → ilk kez giriş yapıyor
-            if (!user) {
-              setUser({
-                id: userInfo.sub,
-                referralCode: "",
-                isPremium: false,
+    // Kullanıcıyı güncelle
+    if (!user) {
+      setUser({
+        id: mockUserData.id,
+        email: mockUserData.email,
+        name: mockUserData.name,
+        referralCode: generateReferralCode(),
+        isPremium: false,
+        totalInvited: 0,
+        successfulInvites: 0,
+        balance: 0,
+        referralCount: 0,
+        referralEarnings: 0,
+        googleFitUserId: mockUserData.id,
+        googleAccessToken: mockUserData.accessToken,
+        isGoogleFitAuthorized: true,
+      });
+    } else {
+      updateUser({
+        googleFitUserId: mockUserData.id,
+        googleAccessToken: mockUserData.accessToken,
+        isGoogleFitAuthorized: true,
+      });
+    }
 
-                totalInvited: 0,
-                successfulInvites: 0,
-                balance: 0,
-                referralCount: 0,
-                referralEarnings: 0,
+    console.log('✅ Mock giriş başarılı! Kullanıcı:', mockUserData);
+    
+    // 1 saniye bekle ve başarılı dön (UI feedback için)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    return true;
 
-                googleFitUserId: userInfo.sub,
-                googleAccessToken: tokenResponse.access_token,
-                isGoogleFitAuthorized: true,
-              });
-            } else {
-              updateUser({
-                googleFitUserId: userInfo.sub,
-                googleAccessToken: tokenResponse.access_token,
-                isGoogleFitAuthorized: true,
-              });
-            }
-
-            resolve(true);
-          },
-        })
-        .requestAccessToken();
-    });
-  } catch (err) {
-    console.error("Google Fit Login Error:", err);
-    return false;
+  } catch (error: any) {
+    console.error("❌ Google Fit Login Error:", error);
+    
+    // Daha anlaşılır hata mesajı
+    let errorMessage = 'Giriş sırasında bir hata oluştu';
+    
+    if (error.message.includes('network') || error.message.includes('internet')) {
+      errorMessage = 'İnternet bağlantınızı kontrol edin';
+    } else if (error.message.includes('cancel')) {
+      errorMessage = 'Giriş işlemi iptal edildi';
+      return false;
+    }
+    
+    throw new Error(errorMessage);
   }
 };
