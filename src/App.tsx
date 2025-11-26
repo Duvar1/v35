@@ -24,7 +24,7 @@ import { googleFitLogin } from './services/googleFitLogin';
 
 const queryClient = new QueryClient();
 
-// Protected Route
+// Protected Route (Sadece steps için)
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const user = useUserStore((s) => s.user);
   const isGoogleFitAuthorized = user?.isGoogleFitAuthorized ?? false;
@@ -37,6 +37,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => {
+  // Tema yükleme
   useEffect(() => {
     const root = document.documentElement;
     const saved = localStorage.getItem("vaktinamaz-settings-v1");
@@ -54,17 +55,14 @@ const App = () => {
     root.classList.add(theme === "dark" ? "dark" : "light");
   }, []);
 
-  const user = useUserStore((s) => s.user);
-  const isGoogleFitAuthorized = user?.isGoogleFitAuthorized ?? false;
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <BrowserRouter>
           <div className="min-h-screen bg-background">
+
             <Routes>
-              
               <Route path="/login" element={<LoginPage onLogin={googleFitLogin} />} />
 
               <Route path="/" element={<HomePage />} />
@@ -74,6 +72,7 @@ const App = () => {
               <Route path="/invite" element={<InvitePage />} />
               <Route path="/settings" element={<SettingsPage />} />
 
+              {/* Steps → Protected */}
               <Route
                 path="/steps"
                 element={
@@ -86,7 +85,8 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
 
-            {isGoogleFitAuthorized && <BottomNavigation />}
+            {/* 🔥 NAVBAR HER ZAMAN GÖRÜNSÜN */}
+            <BottomNavigation />
           </div>
         </BrowserRouter>
       </TooltipProvider>
