@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useEffect } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
 import { useUserStore } from './store/userStore';
-
+import { Capacitor } from '@capacitor/core';
 // Pages
 import { HomePage } from './pages/HomePage';
 import { PrayerTimesPage } from './pages/PrayerTimesPage';
@@ -96,6 +96,16 @@ const AppContent = () => {
     }
     askLocation();
   }, []);
+
+  useEffect(() => {
+  if (Capacitor.isNativePlatform()) {
+    // Android'de routing issues için fallback
+    const path = window.location.pathname;
+    if (path === '' || path === '/' || path.includes('index.html')) {
+      window.history.replaceState(null, '', '/');
+    }
+  }
+}, []);
 
   return (
     <LayoutWithNav>

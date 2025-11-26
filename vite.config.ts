@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 import { viteSourceLocator } from '@metagptx/vite-plugin-source-locator';
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [
     viteSourceLocator({
@@ -11,17 +10,26 @@ export default defineConfig(({ mode }) => ({
     }),
     react(),
   ],
+  
+  // 🔥 KESİN 404 ÇÖZÜMÜ
+  base: './', // Relative path kullan
+  
   server: {
     watch: { usePolling: true, interval: 800 },
-    // 🔥 BU 3 SATIRI EKLEYİN - 404 ÇÖZÜMÜ
     host: true,
     port: 3000,
-    historyApiFallback: true,
+    // 🔥 BU ÖNEMLİ
+    historyApiFallback: {
+      disableDotRule: true,
+      index: '/index.html'
+    },
   },
-  // 🔥 BUILD AYARLARINI DA EKLEYELİM
+  
   build: {
     outDir: 'dist',
     sourcemap: mode === 'development',
+    // 🔥 STATIC ASSET'LER İÇİN
+    assetsDir: 'assets',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -31,6 +39,7 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
+  
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
