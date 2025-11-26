@@ -1,10 +1,24 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- INTERNET -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- PHYSICAL ACTIVITY (adım sayar) -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- NOTIFICATIONS -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- BOOT -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- FOREGROUND SERVICE -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- LOCATION PERMISSIONS (gerekli) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -12,7 +26,10 @@
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/AppTheme">
 
-        <!-- MAIN ACTIVITY -->
+        <meta-data
+            android:name="com.google.android.gms.auth.api.fitness"
+            android:value="363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -23,14 +40,12 @@
             </intent-filter>
         </activity>
 
-        <!-- BACKGROUND STEP SERVICE -->
         <service
             android:name=".StepService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="health" />
 
-        <!-- BOOT RECEIVER -->
         <receiver
             android:name=".StepCounterBroadcastReceiver"
             android:enabled="true"

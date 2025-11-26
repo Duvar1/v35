@@ -1,5 +1,6 @@
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Geolocation } from '@capacitor/geolocation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
@@ -54,6 +55,22 @@ const App = () => {
     root.classList.remove("light", "dark");
     root.classList.add(theme === "dark" ? "dark" : "light");
   }, []);
+
+  useEffect(() => {
+  async function requestLocationPermission() {
+    try {
+      const perm = await Geolocation.checkPermissions();
+
+      if (perm.location !== "granted") {
+        await Geolocation.requestPermissions({ permissions: ["location"] });
+      }
+    } catch (err) {
+      console.warn("Konum izni isteme hatası:", err);
+    }
+  }
+
+  requestLocationPermission();
+}, []);
 
   return (
     <QueryClientProvider client={queryClient}>
