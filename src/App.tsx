@@ -1,9 +1,9 @@
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Geolocation } from '@capacitor/geolocation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Geolocation } from '@capacitor/geolocation';
 import { useUserStore } from './store/userStore';
 
 // Pages
@@ -25,26 +25,23 @@ import { googleFitLogin } from './services/googleFitLogin';
 
 const queryClient = new QueryClient();
 
-// Protected Route (Sadece steps için)
+// Protected Route (sadece steps için)
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const user = useUserStore((s) => s.user);
-  const isGoogleFitAuthorized = user?.isGoogleFitAuthorized ?? false;
+  const isAuthorized = user?.isGoogleFitAuthorized === true;
 
-  if (!isGoogleFitAuthorized) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isAuthorized) return <Navigate to="/login" replace />;
 
   return children;
 };
 
 const App = () => {
-  // Tema yükleme
+  // Tema
   useEffect(() => {
     const root = document.documentElement;
     const saved = localStorage.getItem("vaktinamaz-settings-v1");
 
     let theme = "light";
-
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -56,21 +53,20 @@ const App = () => {
     root.classList.add(theme === "dark" ? "dark" : "light");
   }, []);
 
+  // Uygulama açılır açılmaz konum izni iste
   useEffect(() => {
-  async function requestLocationPermission() {
-    try {
-      const perm = await Geolocation.checkPermissions();
-
-      if (perm.location !== "granted") {
-        await Geolocation.requestPermissions({ permissions: ["location"] });
+    async function askLocation() {
+      try {
+        const perm = await Geolocation.checkPermissions();
+        if (perm.location !== "granted") {
+          await Geolocation.requestPermissions({ permissions: ["location"] });
+        }
+      } catch (err) {
+        console.log("Konum izin hatası:", err);
       }
-    } catch (err) {
-      console.warn("Konum izni isteme hatası:", err);
     }
-  }
-
-  requestLocationPermission();
-}, []);
+    askLocation();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -78,8 +74,8 @@ const App = () => {
         <Toaster />
         <BrowserRouter>
           <div className="min-h-screen bg-background">
-
             <Routes>
+
               <Route path="/login" element={<LoginPage onLogin={googleFitLogin} />} />
 
               <Route path="/" element={<HomePage />} />
@@ -89,7 +85,6 @@ const App = () => {
               <Route path="/invite" element={<InvitePage />} />
               <Route path="/settings" element={<SettingsPage />} />
 
-              {/* Steps → Protected */}
               <Route
                 path="/steps"
                 element={
@@ -102,7 +97,7 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
 
-            {/* 🔥 NAVBAR HER ZAMAN GÖRÜNSÜN */}
+            {/* Navbar — HER SAYFADA GÖRÜNÜR */}
             <BottomNavigation />
           </div>
         </BrowserRouter>
