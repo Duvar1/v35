@@ -14,6 +14,7 @@
     "dev:full": "pnpm run translate-duas && pnpm run dev"
   },
   "dependencies": {
+    "@capacitor-community/http": "^1.4.1",
     "@capacitor/android": "^7.4.4",
     "@capacitor/app": "^7.1.0",
     "@capacitor/browser": "^7.0.2",

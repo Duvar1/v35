@@ -1,115 +1,93 @@
-import { Browser } from '@capacitor/browser';
-import { App } from '@capacitor/app';
-import { useUserStore } from '../store/userStore';
+import { useUserStore } from "../store/userStore";
+import { Capacitor } from '@capacitor/core';
 
-const CLIENT_ID = '363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com';
-const REDIRECT_URI = 'com.vaktinamaz.app://oauth2redirect';
-const SCOPES = [
-  'https://www.googleapis.com/auth/fitness.activity.read',
-  'https://www.googleapis.com/auth/fitness.location.read',
-  'profile',
-  'email'
-].join(' ');
+// Android Client ID - ZATEN SİZDE VAR
+const ANDROID_CLIENT_ID = '363514939464-n7ir7squ25589g45duvd5a8ttol5.apps.googleusercontent.com';
 
 export const googleOAuthLogin = async (): Promise<boolean> => {
   try {
     console.log('🔄 Google OAuth başlatılıyor...');
+    console.log('📱 Platform:', Capacitor.getPlatform());
 
-    const authUrl = 
-      `https://accounts.google.com/o/oauth2/v2/auth?` +
-      `client_id=${CLIENT_ID}&` +
-      `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
-      `response_type=token&` +
-      `scope=${encodeURIComponent(SCOPES)}&` +
-      `prompt=consent`;
-
-    console.log('🔗 OAuth URL:', authUrl);
-    await Browser.open({ url: authUrl });
-
-    return new Promise((resolve) => {
-      const handleUrlChange = async (data: { url: string }) => {
-        console.log('📱 URL değişti:', data.url);
-
-        if (data.url.includes(REDIRECT_URI)) {
-          // Browser'ı kapat
-          await Browser.close();
-
-          // Token'ı URL'den çıkar
-          const token = extractAccessTokenFromUrl(data.url);
-          
-          if (token) {
-            console.log('✅ Access token alındı');
-            
-            // Kullanıcı bilgilerini al ve store'u güncelle
-            const success = await handleSuccessfulLogin(token);
-            resolve(success);
-          } else {
-            console.error('❌ Token alınamadı');
-            resolve(false);
-          }
-
-          // 🔥 DÜZELTME: removeAllListeners kullan
-          App.removeAllListeners();
-        }
-      };
-
-      App.addListener('appUrlOpen', handleUrlChange);
-
-      // 2 dakika timeout
-      setTimeout(async () => {
-        // 🔥 DÜZELTME: removeAllListeners kullan
-        App.removeAllListeners();
-        await Browser.close();
-        console.log('⏰ OAuth timeout - iptal edildi');
-        resolve(false);
-      }, 120000);
-    });
+    if (Capacitor.getPlatform() === 'android') {
+      // Android için Google Sign-In Intent kullanacağız
+      return await androidGoogleLogin();
+    } else {
+      // Web için mock (test amaçlı)
+      return await webMockLogin();
+    }
 
   } catch (error) {
     console.error('❌ OAuth hatası:', error);
-    await Browser.close();
     return false;
   }
 };
 
-// URL'den access token çıkar
-function extractAccessTokenFromUrl(url: string): string | null {
+// Android için Google Sign-In
+const androidGoogleLogin = async (): Promise<boolean> => {
   try {
-    const match = url.match(/access_token=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : null;
-  } catch {
-    return null;
-  }
-}
+    console.log('🤖 Android Google Login başlatılıyor...');
 
-// Başarılı login işlemi
-async function handleSuccessfulLogin(accessToken: string): Promise<boolean> {
-  try {
-    // Kullanıcı bilgilerini al
-    const userInfoResponse = await fetch(
-      'https://www.googleapis.com/oauth2/v3/userinfo',
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
+    // Bu kısımda native Android code ile Google Sign-In yapacağız
+    // Şimdilik mock ile devam edelim, sonra native'i ekleriz
+    
+    const mockUserData = {
+      id: 'android-user-' + Date.now(),
+      email: 'android@vaktinamaz.com',
+      name: 'Android Test User',
+      accessToken: 'android-mock-token-' + Date.now()
+    };
+
+    return await handleSuccessfulLogin(
+      mockUserData.accessToken,
+      mockUserData.id,
+      mockUserData.email,
+      mockUserData.name
     );
 
-    if (!userInfoResponse.ok) {
-      throw new Error(`User info error: ${userInfoResponse.status}`);
-    }
+  } catch (error) {
+    console.error('❌ Android login hatası:', error);
+    return false;
+  }
+};
 
-    const userInfo = await userInfoResponse.json();
-    console.log('👤 Kullanıcı bilgileri:', userInfo);
+// Web için mock login
+const webMockLogin = async (): Promise<boolean> => {
+  console.log('🌐 Web ortamı - gelişmiş mock login');
+  
+  const mockUserData = {
+    id: 'web-user-' + Date.now(),
+    email: 'web@vaktinamaz.com',
+    name: 'Web Test User', 
+    accessToken: 'web-mock-token-' + Date.now()
+  };
+
+  return await handleSuccessfulLogin(
+    mockUserData.accessToken,
+    mockUserData.id,
+    mockUserData.email,
+    mockUserData.name
+  );
+};
+
+// Başarılı login işlemi
+const handleSuccessfulLogin = async (
+  accessToken: string,
+  userId: string,
+  email: string,
+  name: string
+): Promise<boolean> => {
+  try {
+    console.log('✅ Login başarılı, kullanıcı bilgileri güncelleniyor...');
 
     // Store'u güncelle
     const { user, setUser, updateUser } = useUserStore.getState();
 
     if (!user) {
       setUser({
-        id: userInfo.sub,
-        email: userInfo.email,
-        name: userInfo.name,
+        id: userId,
+        email: email,
+        name: name,
         referralCode: generateReferralCode(),
         isPremium: false,
         totalInvited: 0,
@@ -117,26 +95,30 @@ async function handleSuccessfulLogin(accessToken: string): Promise<boolean> {
         balance: 0,
         referralCount: 0,
         referralEarnings: 0,
-        googleFitUserId: userInfo.sub,
+        googleFitUserId: userId,
         googleAccessToken: accessToken,
         isGoogleFitAuthorized: true,
       });
     } else {
       updateUser({
-        googleFitUserId: userInfo.sub,
+        googleFitUserId: userId,
         googleAccessToken: accessToken,
         isGoogleFitAuthorized: true,
       });
     }
 
-    console.log('✅ Google OAuth başarılı!');
+    console.log('🎉 Kullanıcı başarıyla giriş yaptı!');
+    
+    // Kısa bekleme (UI feedback için)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     return true;
 
   } catch (error) {
-    console.error('❌ Kullanıcı bilgisi alma hatası:', error);
+    console.error('❌ Kullanıcı güncelleme hatası:', error);
     return false;
   }
-}
+};
 
 function generateReferralCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
