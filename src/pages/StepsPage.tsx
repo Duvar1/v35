@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
+import { getGoogleFitSteps, testGoogleFitConnection } from '../services/googleFitService';
 import { StepChart } from '../components/StepChart';
 import { AdPlaceholder } from '../components/AdPlaceholder';
-
 import { useStepsStore } from '../store/stepsStore';
 import { useUserStore } from '../store/userStore';
 import { Capacitor } from '@capacitor/core';
@@ -41,6 +41,34 @@ export const StepsPage: React.FC = () => {
     updateTodaySteps(data.stepCount);
   }, [updateTodaySteps]);
 
+  // Google Fit gerçek verileri
+  useEffect(() => {
+    const initializeRealSteps = async () => {
+      if (user?.isGoogleFitAuthorized && user.googleAccessToken) {
+        console.log('🔄 Gerçek Google Fit verileri başlatılıyor...');
+        
+        const isConnected = await testGoogleFitConnection();
+        console.log('🔗 Google Fit bağlantı durumu:', isConnected);
+        
+        if (isConnected) {
+          const realSteps = await getGoogleFitSteps();
+          
+          if (realSteps > 0) {
+            console.log('📊 Gerçek adım verisi alındı:', realSteps);
+            updateTodaySteps(realSteps);
+          }
+        }
+      }
+    };
+
+    initializeRealSteps();
+
+    // Her 30 saniyede bir güncelle
+    const interval = setInterval(initializeRealSteps, 30000);
+    return () => clearInterval(interval);
+  }, [user, updateTodaySteps]);
+
+  // Ana useEffect
   useEffect(() => {
     console.log('🔍 Capacitor platform:', Capacitor.getPlatform());
 
@@ -105,11 +133,9 @@ export const StepsPage: React.FC = () => {
       setSupported(permResult.isSensorAvailable);
       
       if (permResult.hasAllPermissions && permResult.isSensorAvailable) {
-        // Otomatik başlat
         await StepCounter.startStepCounting();
         setServiceStarted(true);
         
-        // Mevcut adımları al
         const stepResult = await StepCounter.getStepCount();
         if (stepResult.stepCount > 0) {
           updateTodaySteps(stepResult.stepCount);
@@ -117,7 +143,6 @@ export const StepsPage: React.FC = () => {
         
         console.log('✅ Adım sayar servisi otomatik başlatıldı');
       } else {
-        // Otomatik izin iste
         await handleAutoPermissionRequest();
       }
     } catch (error) {
