@@ -1,7 +1,7 @@
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
 import { useUserStore } from './store/userStore';
@@ -35,7 +35,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
-const App = () => {
+// Navbar'ı koşullu gösteren wrapper
+const LayoutWithNav = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  const hideNavOnRoutes = ['/login'];
+  const showNav = !hideNavOnRoutes.includes(location.pathname);
+
+  return (
+    <div className="min-h-screen bg-background">
+      {children}
+      {showNav && <BottomNavigation />}
+    </div>
+  );
+};
+
+const AppContent = () => {
   // Tema
   useEffect(() => {
     const root = document.documentElement;
@@ -69,37 +83,39 @@ const App = () => {
   }, []);
 
   return (
+    <LayoutWithNav>
+      <Routes>
+        <Route path="/login" element={<LoginPage onLogin={googleFitLogin} />} />
+        
+        <Route path="/" element={<HomePage />} />
+        <Route path="/prayer-times" element={<PrayerTimesPage />} />
+        <Route path="/qibla" element={<QiblaPage />} />
+        <Route path="/quran" element={<QuranPage />} />
+        <Route path="/invite" element={<InvitePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+
+        <Route
+          path="/steps"
+          element={
+            <ProtectedRoute>
+              <StepsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </LayoutWithNav>
+  );
+};
+
+const App = () => {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Routes>
-
-              <Route path="/login" element={<LoginPage onLogin={googleFitLogin} />} />
-
-              <Route path="/" element={<HomePage />} />
-              <Route path="/prayer-times" element={<PrayerTimesPage />} />
-              <Route path="/qibla" element={<QiblaPage />} />
-              <Route path="/quran" element={<QuranPage />} />
-              <Route path="/invite" element={<InvitePage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-
-              <Route
-                path="/steps"
-                element={
-                  <ProtectedRoute>
-                    <StepsPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-
-            {/* Navbar — HER SAYFADA GÖRÜNÜR */}
-            <BottomNavigation />
-          </div>
+          <AppContent />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
