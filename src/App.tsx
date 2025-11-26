@@ -25,32 +25,48 @@ import { googleFitLogin } from './services/googleFitLogin';
 
 const queryClient = new QueryClient();
 
-// Protected Route (sadece steps için)
+// Protected Route Component - Sadece authorized kullanıcılar görebilir
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const user = useUserStore((s) => s.user);
   const isAuthorized = user?.isGoogleFitAuthorized === true;
 
-  if (!isAuthorized) return <Navigate to="/login" replace />;
+  console.log('🔐 ProtectedRoute kontrolü:', { 
+    user: !!user, 
+    isAuthorized, 
+    userData: user 
+  });
 
-  return children;
+  // Eğer giriş yapılmamışsa LoginPage'e yönlendir
+  if (!isAuthorized) {
+    console.log('🚫 Yetki yok, login sayfasına yönlendiriliyor...');
+    return <Navigate to="/login" replace />;
+  }
+
+  // Eğer giriş yapılmışsa children'ı render et
+  console.log('✅ Yetki var, steps sayfası gösteriliyor');
+  return <>{children}</>;
 };
 
-// Navbar'ı koşullu gösteren wrapper
+// Layout component - Navbar'ı koşullu göster
 const LayoutWithNav = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
+  
+  // Navbar'ın GÖSTERİLMEYECEĞİ sayfalar
   const hideNavOnRoutes = ['/login'];
   const showNav = !hideNavOnRoutes.includes(location.pathname);
 
   return (
     <div className="min-h-screen bg-background">
-      {children}
+      <div className="pb-16"> {/* Navbar için padding */}
+        {children}
+      </div>
       {showNav && <BottomNavigation />}
     </div>
   );
 };
 
 const AppContent = () => {
-  // Tema
+  // Tema ve konum izinleri (mevcut kodunuz aynı)
   useEffect(() => {
     const root = document.documentElement;
     const saved = localStorage.getItem("vaktinamaz-settings-v1");
@@ -67,7 +83,6 @@ const AppContent = () => {
     root.classList.add(theme === "dark" ? "dark" : "light");
   }, []);
 
-  // Uygulama açılır açılmaz konum izni iste
   useEffect(() => {
     async function askLocation() {
       try {
@@ -85,8 +100,10 @@ const AppContent = () => {
   return (
     <LayoutWithNav>
       <Routes>
+        {/* LOGIN ROUTE - Ayrı bir sayfa */}
         <Route path="/login" element={<LoginPage onLogin={googleFitLogin} />} />
         
+        {/* DİĞER SAYFALAR */}
         <Route path="/" element={<HomePage />} />
         <Route path="/prayer-times" element={<PrayerTimesPage />} />
         <Route path="/qibla" element={<QiblaPage />} />
@@ -94,6 +111,7 @@ const AppContent = () => {
         <Route path="/invite" element={<InvitePage />} />
         <Route path="/settings" element={<SettingsPage />} />
 
+        {/* PROTECTED ROUTE - Sadece giriş yapmış kullanıcılar StepsPage'i görebilir */}
         <Route
           path="/steps"
           element={
