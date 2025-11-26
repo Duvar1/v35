@@ -21,7 +21,7 @@ import NotFound from './pages/NotFound';
 import { BottomNavigation } from './components/BottomNavigation';
 
 // Services
-import { googleFitLogin } from './services/googleFitLogin';
+import { googleOAuthLogin } from './services/googleOAuthService';
 
 const queryClient = new QueryClient();
 
@@ -101,7 +101,7 @@ const AppContent = () => {
     <LayoutWithNav>
       <Routes>
         {/* LOGIN ROUTE - Ayrı bir sayfa */}
-        <Route path="/login" element={<LoginPage onLogin={googleFitLogin} />} />
+       <Route path="/login" element={<LoginPage onLogin={googleOAuthLogin} />} />
         
         {/* DİĞER SAYFALAR */}
         <Route path="/" element={<HomePage />} />
