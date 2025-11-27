@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useEffect } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
 import { useUserStore } from './store/userStore';
-import { Capacitor } from '@capacitor/core';
+
 // Pages
 import { HomePage } from './pages/HomePage';
 import { PrayerTimesPage } from './pages/PrayerTimesPage';
@@ -17,103 +17,51 @@ import { SettingsPage } from './pages/SettingsPage';
 import { LoginPage } from './pages/LoginPage';
 import NotFound from './pages/NotFound';
 
-// Components
 import { BottomNavigation } from './components/BottomNavigation';
-
-// Services
 import { googleOAuthLogin } from './services/googleOAuthService';
 
 const queryClient = new QueryClient();
 
-// Protected Route Component - Sadece authorized kullanıcılar görebilir
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const user = useUserStore((s) => s.user);
-  const isAuthorized = user?.isGoogleFitAuthorized === true;
+  const allowed = user?.isGoogleFitAuthorized === true;
 
-  console.log('🔐 ProtectedRoute kontrolü:', { 
-    user: !!user, 
-    isAuthorized, 
-    userData: user 
-  });
+  if (!allowed) return <Navigate to="/login" replace />;
 
-  // Eğer giriş yapılmamışsa LoginPage'e yönlendir
-  if (!isAuthorized) {
-    console.log('🚫 Yetki yok, login sayfasına yönlendiriliyor...');
-    return <Navigate to="/login" replace />;
-  }
-
-  // Eğer giriş yapılmışsa children'ı render et
-  console.log('✅ Yetki var, steps sayfası gösteriliyor');
   return <>{children}</>;
 };
 
-// Layout component - Navbar'ı koşullu göster
 const LayoutWithNav = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  
-  // Navbar'ın GÖSTERİLMEYECEĞİ sayfalar
-  const hideNavOnRoutes = ['/login'];
-  const showNav = !hideNavOnRoutes.includes(location.pathname);
+  const hideNav = ['/login'].includes(location.pathname);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="pb-16"> {/* Navbar için padding */}
-        {children}
-      </div>
-      {showNav && <BottomNavigation />}
+    <div className="min-h-screen">
+      <div className="pb-16">{children}</div>
+      {!hideNav && <BottomNavigation />}
     </div>
   );
 };
 
 const AppContent = () => {
-  // Tema ve konum izinleri (mevcut kodunuz aynı)
+  // Konum izinleri
   useEffect(() => {
-    const root = document.documentElement;
-    const saved = localStorage.getItem("vaktinamaz-settings-v1");
-
-    let theme = "light";
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        theme = parsed?.state?.theme || "light";
-      } catch {}
-    }
-
-    root.classList.remove("light", "dark");
-    root.classList.add(theme === "dark" ? "dark" : "light");
-  }, []);
-
-  useEffect(() => {
-    async function askLocation() {
+    async function askLoc() {
       try {
         const perm = await Geolocation.checkPermissions();
         if (perm.location !== "granted") {
           await Geolocation.requestPermissions({ permissions: ["location"] });
         }
-      } catch (err) {
-        console.log("Konum izin hatası:", err);
-      }
+      } catch {}
     }
-    askLocation();
+    askLoc();
   }, []);
-
-  useEffect(() => {
-  if (Capacitor.isNativePlatform()) {
-    // Android'de routing issues için fallback
-    const path = window.location.pathname;
-    if (path === '' || path === '/' || path.includes('index.html')) {
-      window.history.replaceState(null, '', '/');
-    }
-  }
-}, []);
 
   return (
     <LayoutWithNav>
       <Routes>
-        {/* LOGIN ROUTE - Ayrı bir sayfa */}
-       <Route path="/login" element={<LoginPage onLogin={googleOAuthLogin} />} />
-        
-        {/* DİĞER SAYFALAR */}
+        <Route path="/login" element={<LoginPage onLogin={googleOAuthLogin} />} />
+
         <Route path="/" element={<HomePage />} />
         <Route path="/prayer-times" element={<PrayerTimesPage />} />
         <Route path="/qibla" element={<QiblaPage />} />
@@ -121,7 +69,6 @@ const AppContent = () => {
         <Route path="/invite" element={<InvitePage />} />
         <Route path="/settings" element={<SettingsPage />} />
 
-        {/* PROTECTED ROUTE - Sadece giriş yapmış kullanıcılar StepsPage'i görebilir */}
         <Route
           path="/steps"
           element={
@@ -137,7 +84,7 @@ const AppContent = () => {
   );
 };
 
-const App = () => {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -148,6 +95,4 @@ const App = () => {
       </TooltipProvider>
     </QueryClientProvider>
   );
-};
-
-export default App;
+}

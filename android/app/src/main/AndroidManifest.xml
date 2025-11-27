@@ -3,22 +3,12 @@
     <!-- INTERNET -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- PHYSICAL ACTIVITY (adım sayar) -->
-    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-
     <!-- NOTIFICATIONS -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- BOOT -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-    <!-- FOREGROUND SERVICE -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-
-    <!-- LOCATION PERMISSIONS (gerekli) -->
+    <!-- LOCATION (Kıble ve namaz vakitleri için) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -26,6 +16,7 @@
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/AppTheme">
 
+        <!-- Google Fit clientID -->
         <meta-data
             android:name="com.google.android.gms.auth.api.fitness"
             android:value="363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com" />
@@ -34,39 +25,24 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask">
-            
-            <!-- LAUNCHER INTENT -->
+
+            <!-- Launcher -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- 🔥 OAuth REDIRECT INTENT - BU EKLENDİ -->
+            <!-- OAuth Redirect -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data 
+                <data
                     android:scheme="com.vaktinamaz.app"
                     android:host="oauth2redirect" />
             </intent-filter>
 
         </activity>
-
-        <service
-            android:name=".StepService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="health" />
-
-        <receiver
-            android:name=".StepCounterBroadcastReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
 
     </application>
 
