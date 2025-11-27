@@ -4,21 +4,16 @@ const config: CapacitorConfig = {
   appId: "com.vaktinamaz.app",
   appName: "Vaktinamaz",
   webDir: "dist",
-  
+
   server: {
-    androidScheme: "https",
-    // 🔥 BU SATIR 404 ÇÖZÜMÜ İÇİN
-    url: "http://localhost:3000",
-    cleartext: true
+    androidScheme: "https"
   },
 
   android: {
     buildOptions: {
       keystorePath: "./release-key.keystore",
     },
-    webContentsDebuggingEnabled: true,
-    // 🔥 ANDROID İÇİN EK AYAR
-    allowMixedContent: true
+    webContentsDebuggingEnabled: true
   },
 
   plugins: {
