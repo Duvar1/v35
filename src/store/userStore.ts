@@ -1,11 +1,11 @@
-// store/userStore.ts - Eğer yoksa bu dosyayı oluşturun
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-interface User {
+export interface User {
   id: string;
-  email: string;
-  name: string;
+  email?: string;
+  name?: string;
+
   referralCode: string;
   isPremium: boolean;
   totalInvited: number;
@@ -13,33 +13,113 @@ interface User {
   balance: number;
   referralCount: number;
   referralEarnings: number;
-  googleFitUserId: string;
-  googleAccessToken: string;
+
+  googleFitUserId?: string;
+  googleAccessToken?: string;
   isGoogleFitAuthorized: boolean;
 }
 
+
 interface UserStore {
   user: User | null;
+  isAuthenticated: boolean;
+
+  // Login & Update
   setUser: (user: User) => void;
   updateUser: (updates: Partial<User>) => void;
-  clearUser: () => void;
+
+  // Premium
+  updatePremiumStatus: (v: boolean) => void;
+
+  // Davet istatistikleri
+  updateInviteStats: (total: number, success: number) => void;
+  generateReferralCode: () => string;
+
+  // Google Fit
+  setGoogleFitAuthorized: (v: boolean) => void;
+  setGoogleFitUserId: (id: string | null) => void;
+  setGoogleAccessToken: (token: string | null) => void;
+
+  // Logout
+  logout: () => void;
 }
 
 export const useUserStore = create<UserStore>()(
   persist(
     (set, get) => ({
       user: null,
-      setUser: (user) => set({ user }),
-      updateUser: (updates) => {
-        const currentUser = get().user;
-        if (currentUser) {
-          set({ user: { ...currentUser, ...updates } });
+      isAuthenticated: false,
+
+      // Login işlemi -> kullanıcıyı ekle
+      setUser: (user) =>
+        set({
+          user,
+          isAuthenticated: true,
+        }),
+
+      // Kullanıcı güncelle
+      updateUser: (updates) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...updates } : null,
+        })),
+
+      // Premium
+      updatePremiumStatus: (v) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, isPremium: v } : null,
+        })),
+
+      // Davet sistemi
+      updateInviteStats: (totalInvited, successfulInvites) =>
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                totalInvited,
+                successfulInvites,
+                balance: successfulInvites * 20,
+                referralCount: totalInvited,
+                referralEarnings: successfulInvites * 20,
+              }
+            : null,
+        })),
+
+      generateReferralCode: () => {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let out = "";
+        for (let i = 0; i < 6; i++) {
+          out += chars.charAt(Math.floor(Math.random() * chars.length));
         }
+        return out;
       },
-      clearUser: () => set({ user: null }),
+
+      // ------- GOOGLE FIT -------
+      setGoogleFitAuthorized: (v) =>
+        set((state) => ({
+          user: state.user
+            ? { ...state.user, isGoogleFitAuthorized: v }
+            : null,
+        })),
+
+      setGoogleFitUserId: (id) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, googleFitUserId: id } : null,
+        })),
+
+      setGoogleAccessToken: (token) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, googleAccessToken: token } : null,
+        })),
+
+      // ------- LOGOUT -------
+      logout: () =>
+        set({
+          user: null,
+          isAuthenticated: false,
+        }),
     }),
     {
-      name: 'user-storage',
+      name: "user-storage",
     }
   )
 );
