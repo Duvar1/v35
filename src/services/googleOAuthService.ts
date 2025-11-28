@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 const ANDROID_CLIENT_ID =
   "363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com";
 
-const REDIRECT_URI = "com.vaktinamaz.app:/oauth2redirect";
+const REDIRECT_URI = "http://localhost";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/fitness.activity.read",
