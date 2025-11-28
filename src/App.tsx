@@ -60,7 +60,6 @@ const AppContent = () => {
   return (
     <LayoutWithNav>
       <Routes>
-        <Route path="/login" element={<LoginPage onLogin={googleOAuthLogin} />} />
 
         <Route path="/" element={<HomePage />} />
         <Route path="/prayer-times" element={<PrayerTimesPage />} />

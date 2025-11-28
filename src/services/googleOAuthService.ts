@@ -1,56 +1,95 @@
-import { useUserStore } from "../store/userStore";
+import { Browser } from '@capacitor/browser';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import { useUserStore } from '../store/userStore';
 
+const CLIENT_ID = "363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com";
+const REDIRECT_URI = "com.vaktinamaz.app://oauth2redirect";
 
-export const googleOAuthLogin = async (): Promise<boolean> => {
-  try {
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: "363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com",
-      scope: "https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.location.read",
-      prompt: "consent",
-      callback: async (tokenResponse: any) => {
-        if (!tokenResponse?.access_token) {
-          console.error("No token!");
-          return false;
-        }
+const SCOPES = [
+  "https://www.googleapis.com/auth/fitness.activity.read",
+  "https://www.googleapis.com/auth/fitness.location.read",
+  "email",
+  "profile"
+].join(" ");
 
-        const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        });
-
-        const userInfo = await userInfoRes.json();
-
-        const { user, setUser, updateUser } = useUserStore.getState();
-
-        if (!user) {
-          setUser({
-            id: userInfo.sub,
-            email: userInfo.email,
-            name: userInfo.name,
-            referralCode: "",
-            isPremium: false,
-            totalInvited: 0,
-            successfulInvites: 0,
-            balance: 0,
-            referralCount: 0,
-            referralEarnings: 0,
-            googleFitUserId: userInfo.sub,
-            googleAccessToken: tokenResponse.access_token,
-            isGoogleFitAuthorized: true
-          });
-        } else {
-          updateUser({
-            googleFitUserId: userInfo.sub,
-            googleAccessToken: tokenResponse.access_token,
-            isGoogleFitAuthorized: true
-          });
-        }
-      },
-    });
-
-    tokenClient.requestAccessToken();
-    return true;
-  } catch (err) {
-    console.error(err);
+export async function googleOAuthLogin(): Promise<boolean> {
+  if (Capacitor.getPlatform() !== "android") {
+    console.warn("Only works on Android");
     return false;
   }
-};
+
+  const authUrl =
+    "https://accounts.google.com/o/oauth2/v2/auth?" +
+    `client_id=${CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    `&response_type=token` +
+    `&scope=${encodeURIComponent(SCOPES)}` +
+    `&prompt=consent`;
+
+  await Browser.open({ url: authUrl });
+
+  return await new Promise(async (resolve) => {
+    const listener = await App.addListener("appUrlOpen", async (event) => {
+      if (!event.url.startsWith(REDIRECT_URI)) return;
+
+      await Browser.close();
+      listener.remove();
+
+      const token = extractToken(event.url);
+      if (!token) {
+        resolve(false);
+        return;
+      }
+
+      const ok = await saveUser(token);
+      resolve(ok);
+    });
+
+    setTimeout(async () => {
+      await Browser.close();
+      listener.remove();
+      resolve(false);
+    }, 60000);
+  });
+}
+
+function extractToken(url: string): string | null {
+  const m = url.match(/access_token=([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+async function saveUser(token: string): Promise<boolean> {
+  const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const info = await res.json();
+  const { user, setUser, updateUser } = useUserStore.getState();
+
+  if (!user) {
+    setUser({
+      id: info.sub,
+      email: info.email,
+      name: info.name,
+      referralCode: "",
+      isPremium: false,
+      totalInvited: 0,
+      successfulInvites: 0,
+      balance: 0,
+      referralCount: 0,
+      referralEarnings: 0,
+      googleFitUserId: info.sub,
+      googleAccessToken: token,
+      isGoogleFitAuthorized: true,
+    });
+  } else {
+    updateUser({
+      googleFitUserId: info.sub,
+      googleAccessToken: token,
+      isGoogleFitAuthorized: true,
+    });
+  }
+
+  return true;
+}
