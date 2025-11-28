@@ -60,6 +60,7 @@ const AppContent = () => {
   return (
     <LayoutWithNav>
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
 
         <Route path="/" element={<HomePage />} />
         <Route path="/prayer-times" element={<PrayerTimesPage />} />
