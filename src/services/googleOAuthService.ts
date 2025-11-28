@@ -1,21 +1,27 @@
+// src/services/googleOAuthService.ts
+
 import { Browser } from '@capacitor/browser';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { useUserStore } from '../store/userStore';
+import { toast } from 'sonner';
 
-const CLIENT_ID = "363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com";
-const REDIRECT_URI = "com.vaktinamaz.app://oauth2redirect";
+const CLIENT_ID =
+  "363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com";
+
+const REDIRECT_URI = "com.vaktinamaz.app:/oauth2redirect";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/fitness.activity.read",
   "https://www.googleapis.com/auth/fitness.location.read",
   "email",
-  "profile"
+  "profile",
 ].join(" ");
 
 export async function googleOAuthLogin(): Promise<boolean> {
+
   if (Capacitor.getPlatform() !== "android") {
-    console.warn("Only works on Android");
+    console.warn("Google OAuth sadece Android’de çalışır.");
     return false;
   }
 
@@ -27,7 +33,7 @@ export async function googleOAuthLogin(): Promise<boolean> {
     `&scope=${encodeURIComponent(SCOPES)}` +
     `&prompt=consent`;
 
-  await Browser.open({ url: authUrl });
+  await Browser.open({ url: authUrl, windowName: "_self" });
 
   return await new Promise(async (resolve) => {
     const listener = await App.addListener("appUrlOpen", async (event) => {
@@ -38,6 +44,7 @@ export async function googleOAuthLogin(): Promise<boolean> {
 
       const token = extractToken(event.url);
       if (!token) {
+        toast.error("Google giriş başarısız.");
         resolve(false);
         return;
       }
@@ -60,36 +67,43 @@ function extractToken(url: string): string | null {
 }
 
 async function saveUser(token: string): Promise<boolean> {
-  const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const info = await res.json();
-  const { user, setUser, updateUser } = useUserStore.getState();
-
-  if (!user) {
-    setUser({
-      id: info.sub,
-      email: info.email,
-      name: info.name,
-      referralCode: "",
-      isPremium: false,
-      totalInvited: 0,
-      successfulInvites: 0,
-      balance: 0,
-      referralCount: 0,
-      referralEarnings: 0,
-      googleFitUserId: info.sub,
-      googleAccessToken: token,
-      isGoogleFitAuthorized: true,
+  try {
+    const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${token}` },
     });
-  } else {
-    updateUser({
-      googleFitUserId: info.sub,
-      googleAccessToken: token,
-      isGoogleFitAuthorized: true,
-    });
+
+    const info = await res.json();
+    const { user, setUser, updateUser } = useUserStore.getState();
+
+    if (!user) {
+      setUser({
+        id: info.sub,
+        email: info.email,
+        name: info.name,
+        referralCode: "",
+        isPremium: false,
+        totalInvited: 0,
+        successfulInvites: 0,
+        balance: 0,
+        referralCount: 0,
+        referralEarnings: 0,
+        googleFitUserId: info.sub,
+        googleAccessToken: token,
+        isGoogleFitAuthorized: true,
+      });
+    } else {
+      updateUser({
+        googleFitUserId: info.sub,
+        googleAccessToken: token,
+        isGoogleFitAuthorized: true,
+      });
+    }
+
+    toast.success("Google Fit bağlantısı başarılı!");
+    return true;
+
+  } catch (e) {
+    toast.error("Google girişi sırasında hata oluştu.");
+    return false;
   }
-
-  return true;
 }
