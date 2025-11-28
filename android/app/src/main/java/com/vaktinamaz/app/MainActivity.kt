@@ -1,16 +1,15 @@
 package com.vaktinamaz.app
 
-import com.vaktinamaz.stepcounter.StepServicePlugin
 import android.os.Bundle
 import com.getcapacitor.BridgeActivity
-import com.vaktinamaz.stepcounter.StepCounterPlugin
+import com.vaktinamaz.app.StepServicePlugin   // ✔ DOĞRU IMPORT
 
 class MainActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         this.init(savedInstanceState, listOf(
-            StepCounterPlugin()
+            StepServicePlugin()   // ✔ DOĞRU PLUGIN
         ))
     }
 }

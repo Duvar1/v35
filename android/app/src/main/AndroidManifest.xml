@@ -1,17 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- INTERNET -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- NOTIFICATIONS -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- LOCATION (Kıble ve namaz vakitleri için) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <uses-permission android:name="android.permission.BODY_SENSORS"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -19,7 +16,6 @@
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/AppTheme">
 
-        <!-- Google Fit clientID -->
         <meta-data
             android:name="com.google.android.gms.auth.api.fitness"
             android:value="363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com" />
@@ -29,13 +25,11 @@
             android:exported="true"
             android:launchMode="singleTask">
 
-            <!-- Launcher -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- OAuth Redirect -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -46,6 +40,12 @@
             </intent-filter>
 
         </activity>
+
+        <!-- 🔥 FOREGROUND SERVICE TANIMI (ZORUNLU) -->
+        <service
+            android:name="com.vaktinamaz.app.StepService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
     </application>
 

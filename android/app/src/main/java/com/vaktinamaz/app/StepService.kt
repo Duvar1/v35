@@ -7,10 +7,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.getcapacitor.JSObject
-import com.getcapacitor.PluginCall
 import com.getcapacitor.Bridge
 
 class StepService : Service(), SensorEventListener {
@@ -21,8 +19,6 @@ class StepService : Service(), SensorEventListener {
 
     companion object {
         const val CHANNEL_ID = "step_counter_channel"
-        const val NOTIFICATION_ID = 1001
-
         var bridge: Bridge? = null
     }
 
@@ -33,10 +29,19 @@ class StepService : Service(), SensorEventListener {
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
 
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
 
-        stepSensor?.also { sensor ->
-            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        startForeground(
+            1001,
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Adım Sayar Çalışıyor")
+                .setContentText("Arka planda adımlar takip ediliyor")
+                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setOngoing(true)
+                .build()
+        )
+
+        if (stepSensor != null) {
+            sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
 
@@ -45,39 +50,29 @@ class StepService : Service(), SensorEventListener {
         super.onDestroy()
     }
 
-    override fun onSensorChanged(event: android.hardware.SensorEvent?) {
+    override fun onBind(intent: Intent?) = null
+
+    override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
-            val total = it.values[0].toInt()
+            val current = it.values[0].toInt()
 
             if (lastValue == 0) {
-                lastValue = total
+                lastValue = current
                 return
             }
 
-            val diff = total - lastValue
-            lastValue = total
+            val diff = current - lastValue
+            lastValue = current
 
             if (diff > 0) {
-                val data = JSObject()
-                data.put("steps", diff)
-
-                bridge?.plugin("StepServicePlugin")?.notifyListeners("stepUpdate", data)
+                val data = JSObject().put("steps", diff)
+                bridge?.plugin("StepServicePlugin")
+                    ?.notifyListeners("stepUpdate", data)
             }
         }
     }
 
-    override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
-
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    private fun buildNotification(): Notification {
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Adım Sayar Aktif")
-            .setContentText("Adım sensörü arka planda çalışıyor")
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setOngoing(true)
-            .build()
-    }
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
