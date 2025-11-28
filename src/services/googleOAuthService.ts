@@ -5,7 +5,7 @@ import { useUserStore } from '../store/userStore';
 import { toast } from 'sonner';
 
 const ANDROID_CLIENT_ID =
-  "363514939464-n7ir7squ25589sh85g45duvd5a8ttol5.apps.googleusercontent.com";
+  "363514939464-og3k4opqlp9upjqdrcrr1csr1f5klai7.apps.googleusercontent.com";
 
 const REDIRECT_URI = "http://localhost";
 
