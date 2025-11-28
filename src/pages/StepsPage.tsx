@@ -1,63 +1,86 @@
 // src/pages/StepsPage.tsx
 
-import React, { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+
 import { useUserStore } from "../store/userStore";
-import { getTodaySteps } from "../services/googleFitSteps";
+import { useStepsStore } from "../store/stepsStore";
+
+import { StepService } from "../plugins/stepService"; 
+import { AdPlaceholder } from "../components/AdPlaceholder";
 
 export const StepsPage: React.FC = () => {
   const { user } = useUserStore();
-  const accessToken = user?.googleAccessToken ?? null;
 
-  const dailyGoal = 8000;
-  const [steps, setSteps] = useState(0);
+  const {
+    dailyGoal,
+    todaySteps,
+    updateTodaySteps,
+    addSteps,
+    setServiceStarted,
+    serviceStarted,
+  } = useStepsStore();
 
+  const token = user?.googleAccessToken ?? null;
+
+
+  // 🚀 FOREGROUND SERVICE — ARKA PLANDA SENSÖR
   useEffect(() => {
-    if (!accessToken) return;
+    if (serviceStarted) return;
 
-    const fn = async () => {
-      const s = await getTodaySteps(accessToken);
-      setSteps(s);
-    };
+    StepService.addListener("stepUpdate", (data: any) => {
+      const step = data.steps;
+      if (step > 0) addSteps(step);
+    });
 
-    fn();
-    const interval = setInterval(fn, 5000);
-    return () => clearInterval(interval);
-  }, [accessToken]);
+    // Servisi başlat
+    StepService.startService();
 
-  const progress = Math.min((steps / dailyGoal) * 100, 100);
+    setServiceStarted(true);
+  }, []);
+
+  const progress = Math.min((todaySteps / dailyGoal) * 100, 100);
 
   return (
-    <div className="p-5 space-y-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 
+      dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900 p-4 space-y-6">
 
-      <h1 className="text-3xl font-light text-center tracking-wide">
-        Günlük Adımlarım
-      </h1>
+      {!user?.isPremium && <AdPlaceholder type="banner" />}
 
-      <Card className="shadow-lg rounded-2xl">
-        <CardContent className="p-6 text-center space-y-4">
+      <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 
+        dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 
+        border border-pink-200/50 dark:border-purple-500/30 rounded-xl shadow-md">
+        
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-light text-pink-800 dark:text-purple-200">
+            Günlük Adım Sayısı
+          </CardTitle>
+        </CardHeader>
 
-          <div className="text-6xl font-light">
-            {steps.toLocaleString()}
+        <CardContent className="p-6 space-y-4 text-center">
+          <div className="text-6xl font-light text-orange-600 dark:text-orange-300">
+            {todaySteps.toLocaleString()}
           </div>
 
-          <Progress value={progress} className="h-4 rounded-full" />
+          <Progress value={progress} className="h-3" />
 
-          <div className="flex justify-between text-gray-500 text-sm">
-            <span>Hedef: {dailyGoal.toLocaleString()}</span>
-            <span>%{Math.round(progress)}</span>
+          <div className="flex justify-between text-sm">
+            <span className="text-pink-800 dark:text-purple-200">
+              Hedef: {dailyGoal.toLocaleString()}
+            </span>
+            <span className="text-orange-600 dark:text-orange-300 font-medium">
+              %{Math.round(progress)}
+            </span>
           </div>
         </CardContent>
+
       </Card>
 
-      {/* Reklam Alanı */}
-      <div className="mt-8">
-        <div className="w-full h-20 bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-500">
-          Reklam Alanı
-        </div>
-      </div>
-
+      {!user?.isPremium && <AdPlaceholder type="banner" />}
+      <div className="h-12" />
     </div>
   );
 };
+
+export default StepsPage;
