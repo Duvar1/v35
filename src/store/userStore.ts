@@ -14,11 +14,16 @@ export interface User {
   referralCount: number;
   referralEarnings: number;
 
+  // ANDROID — Google Fit
   googleFitUserId?: string;
   googleAccessToken?: string;
   isGoogleFitAuthorized: boolean;
-}
 
+  // iOS — Apple Health
+  isAppleHealthAuthorized?: boolean;
+  appleHealthSteps?: number;
+  appleHealthPermissionsRequested?: boolean;
+}
 
 interface UserStore {
   user: User | null;
@@ -40,6 +45,11 @@ interface UserStore {
   setGoogleFitUserId: (id: string | null) => void;
   setGoogleAccessToken: (token: string | null) => void;
 
+  // Apple Health
+  setAppleHealthAuthorized: (v: boolean) => void;
+  setAppleHealthSteps: (n: number) => void;
+  setAppleHealthPermissionsRequested: (v: boolean) => void;
+
   // Logout
   logout: () => void;
 }
@@ -50,14 +60,12 @@ export const useUserStore = create<UserStore>()(
       user: null,
       isAuthenticated: false,
 
-      // Login işlemi -> kullanıcıyı ekle
       setUser: (user) =>
         set({
           user,
           isAuthenticated: true,
         }),
 
-      // Kullanıcı güncelle
       updateUser: (updates) =>
         set((state) => ({
           user: state.user ? { ...state.user, ...updates } : null,
@@ -93,12 +101,10 @@ export const useUserStore = create<UserStore>()(
         return out;
       },
 
-      // ------- GOOGLE FIT -------
+      // Google Fit
       setGoogleFitAuthorized: (v) =>
         set((state) => ({
-          user: state.user
-            ? { ...state.user, isGoogleFitAuthorized: v }
-            : null,
+          user: state.user ? { ...state.user, isGoogleFitAuthorized: v } : null,
         })),
 
       setGoogleFitUserId: (id) =>
@@ -111,7 +117,24 @@ export const useUserStore = create<UserStore>()(
           user: state.user ? { ...state.user, googleAccessToken: token } : null,
         })),
 
-      // ------- LOGOUT -------
+      // Apple Health
+      setAppleHealthAuthorized: (v) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, isAppleHealthAuthorized: v } : null,
+        })),
+
+      setAppleHealthSteps: (n) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, appleHealthSteps: n } : null,
+        })),
+
+      setAppleHealthPermissionsRequested: (v) =>
+        set((state) => ({
+          user: state.user
+            ? { ...state.user, appleHealthPermissionsRequested: v }
+            : null,
+        })),
+
       logout: () =>
         set({
           user: null,
