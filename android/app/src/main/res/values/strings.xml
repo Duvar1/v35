@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Vaktinamaz</string>
-    <string name="title_activity_main">Vaktinamaz</string>
-    <string name="package_name">com.vaktinamaz.app</string>
-    <string name="custom_url_scheme">com.vaktinamaz.app</string>
-</resources>
