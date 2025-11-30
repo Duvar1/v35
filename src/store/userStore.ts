@@ -5,21 +5,21 @@ import { persist } from "zustand/middleware";
 
 export interface User {
   id: string;
-  email?: string;
-  name?: string;
-
+  email: string;
+  name: string;
   referralCode: string;
   isPremium: boolean;
-
   totalInvited: number;
   successfulInvites: number;
   balance: number;
   referralCount: number;
   referralEarnings: number;
-
-  googleFitUserId?: string;
-  googleAccessToken?: string;
+  googleFitUserId: string;
+  googleAccessToken: string;
   isGoogleFitAuthorized: boolean;
+  // Yeni alanlar
+  pendingInvites?: number;
+  totalEarned?: number;
 }
 
 interface UserStore {

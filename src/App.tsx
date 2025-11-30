@@ -3,10 +3,9 @@
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
-import { useUserStore } from './store/userStore';
 
 import { HomePage } from './pages/HomePage';
 import { PrayerTimesPage } from './pages/PrayerTimesPage';
@@ -19,15 +18,6 @@ import NotFound from './pages/NotFound';
 import { BottomNavigation } from './components/BottomNavigation';
 
 const queryClient = new QueryClient();
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const user = useUserStore((s) => s.user);
-
-  if (!user) return <Navigate to="/login" replace />;
-  if (!user.isGoogleFitAuthorized) return <Navigate to="/login" replace />;
-
-  return <>{children}</>;
-};
 
 const LayoutWithNav = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -50,7 +40,6 @@ function AppContent() {
   return (
     <LayoutWithNav>
       <Routes>
-
         <Route path="/" element={<HomePage />} />
         <Route path="/prayer-times" element={<PrayerTimesPage />} />
         <Route path="/qibla" element={<QiblaPage />} />
@@ -58,6 +47,7 @@ function AppContent() {
         <Route path="/invite" element={<InvitePage />} />
         <Route path="/settings" element={<SettingsPage />} />
 
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </LayoutWithNav>
   );
