@@ -12,10 +12,8 @@ import { HomePage } from './pages/HomePage';
 import { PrayerTimesPage } from './pages/PrayerTimesPage';
 import QiblaPage from "./pages/QiblaPage";
 import { QuranPage } from './pages/QuranPage';
-import { StepsPage } from './pages/StepsPage';
 import { InvitePage } from './pages/InvitePage';
 import { SettingsPage } from './pages/SettingsPage';
-import { LoginPage } from './pages/LoginPage';
 import NotFound from './pages/NotFound';
 
 import { BottomNavigation } from './components/BottomNavigation';
@@ -52,7 +50,6 @@ function AppContent() {
   return (
     <LayoutWithNav>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
 
         <Route path="/" element={<HomePage />} />
         <Route path="/prayer-times" element={<PrayerTimesPage />} />
@@ -61,16 +58,6 @@ function AppContent() {
         <Route path="/invite" element={<InvitePage />} />
         <Route path="/settings" element={<SettingsPage />} />
 
-        <Route
-          path="/steps"
-          element={
-            <ProtectedRoute>
-              <StepsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route path="*" element={<NotFound />} />
       </Routes>
     </LayoutWithNav>
   );
