@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
 
+import PremiumPage from './pages/PremiumPage';
 import { HomePage } from './pages/HomePage';
 import { PrayerTimesPage } from './pages/PrayerTimesPage';
 import QiblaPage from "./pages/QiblaPage";
@@ -44,6 +45,7 @@ function AppContent() {
         <Route path="/prayer-times" element={<PrayerTimesPage />} />
         <Route path="/qibla" element={<QiblaPage />} />
         <Route path="/quran" element={<QuranPage />} />
+        <Route path="/premium" element={<PremiumPage />} />
         <Route path="/invite" element={<InvitePage />} />
         <Route path="/settings" element={<SettingsPage />} />
 

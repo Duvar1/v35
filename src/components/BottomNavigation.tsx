@@ -43,11 +43,6 @@ export const BottomNavigation: React.FC = () => {
       icon: <BookOpen className="h-5 w-5" />,
       label: 'Kur\'an'
     },
-    {
-      path: '/steps',
-      icon: <Footprints className="h-5 w-5" />,
-      label: 'Adımlar'
-    }
   ];
 
   const secondaryNavItems: NavItem[] = [
