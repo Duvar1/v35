@@ -2,6 +2,7 @@ package com.vaktinamaz.app
 
 import android.os.Bundle
 import com.getcapacitor.BridgeActivity
+
 import com.vaktinamaz.app.StepServicePlugin   // ✔ DOĞRU IMPORT
 
 class MainActivity : BridgeActivity() {

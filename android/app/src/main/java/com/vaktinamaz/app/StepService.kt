@@ -83,4 +83,3 @@ class StepService : Service(), SensorEventListener {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
     }
-}
