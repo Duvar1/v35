@@ -7,19 +7,23 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
 
+import { useScrollTop } from "./hooks/useScrollTop";
+
 import PremiumPage from './pages/PremiumPage';
 import { HomePage } from './pages/HomePage';
 import { PrayerTimesPage } from './pages/PrayerTimesPage';
 import QiblaPage from "./pages/QiblaPage";
 import { QuranPage } from './pages/QuranPage';
 import { InvitePage } from './pages/InvitePage';
-import { SettingsPage } from './pages/SettingsPage';
+import SettingsPage from './pages/SettingsPage';
 import NotFound from './pages/NotFound';
 
 import { BottomNavigation } from './components/BottomNavigation';
 
+// --- Query Client ---
 const queryClient = new QueryClient();
 
+// --- Layout ---
 const LayoutWithNav = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const hideNav = location.pathname === "/login";
@@ -32,9 +36,11 @@ const LayoutWithNav = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+// --- İçerik ---
 function AppContent() {
+  useScrollTop(); // 🔥 Tüm sayfalar her açıldığında yukarı kaydır
+
   useEffect(() => {
-    // Konum izni
     Geolocation.requestPermissions().catch(() => {});
   }, []);
 
@@ -48,13 +54,13 @@ function AppContent() {
         <Route path="/premium" element={<PremiumPage />} />
         <Route path="/invite" element={<InvitePage />} />
         <Route path="/settings" element={<SettingsPage />} />
-
         <Route path="*" element={<NotFound />} />
       </Routes>
     </LayoutWithNav>
   );
 }
 
+// --- ANA APP ---
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>

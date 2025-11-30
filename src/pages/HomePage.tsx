@@ -1,10 +1,10 @@
 // src/pages/HomePage.tsx
 import React, { useEffect, useState } from 'react'; 
 import { fetchDailyRandomHadith } from '../services/hadithService';
-import { getDailyDua, DuaDetail } from '../services/dailyDuaService';
+import { getDailyDua } from '../services/dailyDuaService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, Book, TrendingUp, Calendar } from 'lucide-react';
+import { Clock, MapPin, Book, Calendar } from 'lucide-react';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { DailyContentCard } from '../components/DailyContentCard';
 import { AdPlaceholder } from '../components/AdPlaceholder';
@@ -14,436 +14,229 @@ import { useUserStore } from '../store/userStore';
 import { PrayerTimesService } from '../services/prayerTimesService';
 import { fetchDailyVerse } from '../services/quranService';
 
-interface HadithDetail {
-  id?: string;
-  title?: string;
-  hadeeth?: string;
-  explanation?: string;
-  grade?: string;
-  attribution?: string;
-  reference?: string;
-}
-
-interface VerseDetail {
-  arabic: string;
-  turkish: string;
-  reference: string;
-}
-
 export const HomePage: React.FC = () => {
+
+  /* SAYFA AÇILDIĞINDA EN ÜSTE ÇIK */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const { prayerTimes, loading, setPrayerTimes } = usePrayerStore();
-  const { city } = useSettingsStore();
+  const { city, setCityAuto } = useSettingsStore();
   const { user } = useUserStore();
-  
-  const [dailyVerse, setDailyVerse] = useState<VerseDetail | null>(null);
-  const [dailyHadith, setDailyHadith] = useState<HadithDetail | null>(null);
-  const [dailyDua, setDailyDua] = useState<DuaDetail | null>(null);
+
+  const [dailyVerse, setDailyVerse] = useState<any>(null);
+  const [dailyHadith, setDailyHadith] = useState<any>(null);
+  const [dailyDua, setDailyDua] = useState<any>(null);
+
   const [verseLoading, setVerseLoading] = useState(true);
   const [hadithLoading, setHadithLoading] = useState(true);
   const [duaLoading, setDuaLoading] = useState(true);
 
-  const today = new Date();
-  const startOfYear = new Date(today.getFullYear(), 0, 0);
-  const dayOfYear = Math.floor((today.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
-  
-  const getGreeting = () => {
-    const hour = today.getHours();
-    if (hour < 6) return 'Hayırlı geceler';
-    if (hour < 12) return 'Günaydın';
-    if (hour < 18) return 'İyi günler';
-    return 'Hayırlı akşamlar';
-  };
+  /* KONUMLA ŞEHİR BELİRLE — İlk açılış */
+  useEffect(() => {
+    if (!city || city === "Istanbul") {
+      setCityAuto();  // otomatik şehir alma fonksiyonu
+    }
+  }, []);
 
-  const formatDate = () => {
-    return today.toLocaleDateString('tr-TR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  // Günün ayetini yükle
+  /* AYET */
   useEffect(() => {
     const loadDailyVerse = async () => {
       try {
-        setVerseLoading(true);
-        const verse = await fetchDailyVerse();
-        setDailyVerse(verse);
-      } catch (error) {
-        console.error('Günün ayeti yüklenemedi:', error);
-        // Fallback ayet
+        const v = await fetchDailyVerse();
+        setDailyVerse(v);
+      } catch {
         setDailyVerse({
           arabic: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
-          turkish: "Rahmân ve Rahîm olan Allah'ın adıyla.",
-          reference: "Fatiha Suresi 1. Ayet"
+          turkish: "Rahman ve Rahim olan Allah'ın adıyla.",
+          reference: "Fatiha Suresi 1"
         });
       } finally {
         setVerseLoading(false);
       }
     };
-
     loadDailyVerse();
   }, []);
 
-  // Günün hadisini yükle
+  /* HADİS */
   useEffect(() => {
-    const loadDailyHadith = async () => {
+    const loadHadith = async () => {
       try {
-        setHadithLoading(true);
-        const hadithData = await fetchDailyRandomHadith();
-        
-        const hadith: HadithDetail = {
-          id: hadithData.id,
-          title: hadithData.title,
-          hadeeth: hadithData.hadeeth,
-          explanation: hadithData.explanation,
-          grade: hadithData.grade,
-          attribution: hadithData.attribution,
-          reference: hadithData.reference || "Hadis"
-        };
-        
-        setDailyHadith(hadith);
-      } catch (error) {
-        console.error('Günün hadisi yüklenemedi:', error);
-        // Fallback hadis
+        const h = await fetchDailyRandomHadith();
+        setDailyHadith(h);
+      } catch {
         setDailyHadith({
           title: "Günlük Hadis",
-          hadeeth: "مَنْ صَلَّى عَلَىَّ وَاحِدَةً صَلَّى اللَّهُ عَلَيْهِ عَشْرًا",
-          explanation: "Kim bana bir defa salâtü selam getirirse, Allah ona on defa salât eder.",
-          reference: "Müslim, Salât, 70"
+          hadeeth: "مَنْ صَلَّى عَلَىَّ...",
+          explanation: "Kim bana bir salât getirirse Allah ona on kez salât eder."
         });
       } finally {
         setHadithLoading(false);
       }
     };
-
-    loadDailyHadith();
+    loadHadith();
   }, []);
 
-  // Günün duasını yükle
+  /* DUA */
   useEffect(() => {
-    const loadDailyDua = () => {
-      try {
-        setDuaLoading(true);
-        console.log('🔄 Günlük dua yükleniyor...');
-        const dua = getDailyDua();
-        console.log('✅ Günlük dua alındı:', dua?.ID);
-        setDailyDua(dua);
-      } catch (error) {
-        console.error('❌ Günlük dua yüklenemedi:', error);
-        // Fallback dua
-        setDailyDua({
-          ID: 75,
-          ARABIC_TEXT: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
-          TURKISH_TEXT: "Allah'ı hamd ile tesbih ederim"
-        });
-      } finally {
-        setDuaLoading(false);
-      }
-    };
-
-    loadDailyDua();
+    const dua = getDailyDua();
+    setDailyDua(dua);
+    setDuaLoading(false);
   }, []);
 
-  // Namaz vakitlerini yükle
+  /* NAMAZ VAKİTLERİ */
   useEffect(() => {
-    const loadPrayerTimes = async () => {
+    const loadTimes = async () => {
       try {
-        const times = await PrayerTimesService.getPrayerTimes(city);
-        setPrayerTimes(times);
-      } catch (error) {
-        console.error('Failed to load prayer times:', error);
+        const t = await PrayerTimesService.getPrayerTimes(city);
+        setPrayerTimes(t);
+      } catch (err) {
+        console.log(err);
       }
     };
+    loadTimes();
+  }, [city]);
 
-    loadPrayerTimes();
-  }, [city, setPrayerTimes]);
-
+  /* SIRADAKİ NAMAZ */
   const getNextPrayer = () => {
     if (!prayerTimes) return null;
-    
     const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    
-    for (const prayer of prayerTimes.prayers) {
-      const [hours, minutes] = prayer.time.split(':').map(Number);
-      const prayerTime = hours * 60 + minutes;
-      
-      if (prayerTime > currentTime) {
-        return { name: prayer.name, time: prayer.time };
-      }
+    const minutesNow = now.getHours() * 60 + now.getMinutes();
+
+    for (const p of prayerTimes.prayers) {
+      const [h, m] = p.time.split(":").map(Number);
+      if (h * 60 + m > minutesNow) return p;
     }
-    
-    return prayerTimes.prayers.length > 0 
-      ? { name: prayerTimes.prayers[0].name, time: prayerTimes.prayers[0].time }
-      : null;
+    return prayerTimes.prayers[0];
   };
 
   const nextPrayer = getNextPrayer();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900 no-horizontal-scroll">
-      {/* Fixed Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-pink-100/90 via-orange-100/90 to-blue-100/90 dark:from-purple-900/90 dark:via-blue-900/90 dark:to-cyan-900/90 backdrop-blur-md border-b border-pink-200/50 dark:border-purple-500/30">
-        <div className="p-4">
-          <div className="text-center space-y-1">
-            <h1 className="text-2xl font-light text-pink-800 dark:text-purple-200">
-              {getGreeting()}
-            </h1>
-            
-            <div className="flex items-center justify-center space-x-4 text-sm text-blue-600 dark:text-cyan-400 font-light">
-              <div className="flex items-center space-x-1">
-                <MapPin className="h-4 w-4" />
-                <span>{city}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Calendar className="h-4 w-4" />
-                <span className="font-light">{formatDate()}</span>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br 
+      from-pink-50 via-orange-50 to-blue-50 
+      dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900">
+
+      {/* ---------- HEADER ---------- */}
+      <div className="
+        sticky top-0 z-10 p-4 text-center
+        bg-gradient-to-r from-pink-100/90 via-orange-100/90 to-blue-100/90
+        dark:from-purple-900/90 dark:via-blue-900/90 dark:to-cyan-900/90
+        backdrop-blur-md border-b border-white/20">
+
+        <h1 className="text-2xl font-light text-pink-800 dark:text-purple-200">
+          Vakt-i Namaz
+        </h1>
+
+        <div className="flex justify-center gap-3 text-blue-600 dark:text-cyan-400 text-sm mt-1">
+          <MapPin className="h-4 w-4" />
+          <span>{city}</span>
+
+          <Calendar className="h-4 w-4" />
+          <span>{new Date().toLocaleDateString("tr-TR")}</span>
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="pb-20 px-4 space-y-6 w-full max-w-full overflow-x-hidden">
-        {/* Top Ad */}
-        {!user?.isPremium && (
-          <div className="pt-4 w-full">
-            <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
-          </div>
-        )}
+      {/* ---------- İÇERİK ---------- */}
+      <div className="px-4 pb-24 space-y-6">
 
-        {/* Countdown Timer */}
-        <div className="pt-2 w-full">
-          {loading ? (
-            <Card className="animate-pulse bg-gradient-to-r from-pink-200/60 via-orange-200/60 to-blue-200/60 dark:from-purple-800/40 dark:via-blue-800/40 dark:to-cyan-800/40 border-pink-200/50 dark:border-purple-500/30 w-full">
-              <CardContent className="p-6 h-32"></CardContent>
-            </Card>
-          ) : (
-            <div className="w-full">
-              <CountdownTimer nextPrayer={nextPrayer} />
-            </div>
-          )}
-        </div>
+        {/* Reklam 1 */}
+        {!user?.isPremium && <AdPlaceholder type="banner" className="mt-3" />}
 
-        {/* Quick Prayer Times - Grid Layout */}
-        <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30 w-full">
+        {/* Sayaç */}
+        <CountdownTimer nextPrayer={nextPrayer} />
+
+        {/* Günün Vakitleri */}
+        <Card className="bg-white/80 dark:bg-slate-900/60 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
-              <Clock className="h-5 w-5 text-blue-600 dark:text-cyan-400" />
-              <span>Bugünün Vakitleri</span>
+            <CardTitle className="flex items-center gap-2 text-pink-800 dark:text-purple-200">
+              <Clock className="h-5 w-5" /> Bugünün Vakitleri
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="grid grid-cols-2 gap-3 w-full">
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="animate-pulse bg-gradient-to-r from-pink-200/60 via-orange-200/60 to-blue-200/60 dark:from-purple-800/40 dark:via-blue-800/40 dark:to-cyan-800/40 h-12 rounded-lg w-full"
-                  ></div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 w-full">
-                {prayerTimes?.prayers.map((prayer) => {
-                  const now = new Date();
-                  const currentTime = now.getHours() * 60 + now.getMinutes();
-                  const [hours, minutes] = prayer.time.split(':').map(Number);
-                  const prayerTime = hours * 60 + minutes;
-                  const isNext =
-                    prayerTime > currentTime &&
-                    prayerTimes.prayers.find((p) => {
-                      const [h, m] = p.time.split(':').map(Number);
-                      return h * 60 + m > currentTime;
-                    })?.name === prayer.name;
-                  const isPassed = prayerTime <= currentTime;
 
-                  return (
-                    <div
-                      key={prayer.name}
-                      className={`p-3 rounded-lg text-center transition-all duration-300 backdrop-blur-sm w-full ${
-                        isNext
-                          ? 'bg-gradient-to-r from-pink-500 via-orange-500 to-blue-500 border-2 border-white/30 shadow-lg transform scale-105'
-                          : isPassed
-                          ? 'bg-gradient-to-r from-pink-100/40 via-orange-100/40 to-blue-100/40 dark:from-purple-800/30 dark:via-blue-800/30 dark:to-cyan-800/30 opacity-70 border border-pink-200/30 dark:border-purple-500/20'
-                          : 'bg-gradient-to-r from-pink-100/60 via-orange-100/60 to-blue-100/60 dark:from-purple-800/40 dark:via-blue-800/40 dark:to-cyan-800/40 border border-pink-200/50 dark:border-purple-500/30 hover:shadow-md'
-                      }`}
-                    >
-                      <div
-                        className={`text-sm font-light mb-1 ${
-                          isNext
-                            ? 'text-white'
-                            : 'text-pink-800 dark:text-purple-200'
-                        }`}
-                      >
-                        {prayer.name}
-                      </div>
-                      <div
-                        className={`text-lg font-mono font-light tracking-wide ${
-                          isNext
-                            ? 'text-white/90'
-                            : 'text-orange-600 dark:text-cyan-300'
-                        }`}
-                      >
-                        {prayer.time}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              {prayerTimes?.prayers?.map((p) => (
+                <div key={p.name} className="
+                  p-3 rounded-lg text-center
+                  bg-white/70 dark:bg-slate-800/40
+                  border border-white/20 dark:border-white/10">
+
+                  <div className="text-sm text-pink-800 dark:text-purple-200">
+                    {p.name}
+                  </div>
+
+                  <div className="text-lg text-orange-600 dark:text-cyan-300">
+                    {p.time}
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Daily Content Section */}
-        <div className="space-y-4 w-full">
-          <h2 className="text-xl font-light text-pink-800 dark:text-purple-200">
-            Günün İçeriği
-          </h2>
-          
-          {/* Günün Ayeti */}
-          {!verseLoading && dailyVerse && (
-            <div className="w-full">
-              <DailyContentCard
-                type="verse"
-                arabic={dailyVerse.arabic}
-                turkish={dailyVerse.turkish}
-                reference={dailyVerse.reference}
-                accentColor="gold"
-              />
-            </div>
-          )}
-          
-          {/* Günün Hadisi */}
-          {!hadithLoading && dailyHadith && (
-            <div className="w-full">
-              <DailyContentCard
-                type="hadith"
-                arabic={dailyHadith.hadeeth || ""}
-                turkish={dailyHadith.explanation || dailyHadith.title || ""}
-                reference={dailyHadith.reference || "Hadis"}
-                accentColor="turquoise"
-              />
-            </div>
-          )}
-          
-          {/* Günün Duası */}
-          {!duaLoading && dailyDua && (
-            <div className="w-full">
-              <DailyContentCard
-                type="prayer"
-                arabic={dailyDua.ARABIC_TEXT}
-                turkish={dailyDua.TURKISH_TEXT}
-                reference={`Hisn Muslim - Dua ${dailyDua.ID}`}
-                accentColor="soft-gold"
-              />
-            </div>
-          )}
-        </div>
+        {/* Günün İçeriği */}
+        <h2 className="text-xl font-light text-pink-800 dark:text-purple-200">
+          Günün İçeriği
+        </h2>
 
-        {/* Middle Ad */}
-        {!user?.isPremium && (
-          <div className="w-full">
-            <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
-          </div>
+        {!verseLoading && dailyVerse && (
+          <DailyContentCard type="verse" {...dailyVerse} />
         )}
 
-        {/* Quick Actions */}
-        <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 backdrop-blur-sm border border-pink-200/50 dark:border-purple-500/30 w-full">
+        {!hadithLoading && dailyHadith && (
+          <DailyContentCard
+            type="hadith"           
+            arabic={dailyHadith.hadeeth}
+            turkish={dailyHadith.explanation}
+            reference="Hadis"
+          />
+        )}
+
+        {!duaLoading && dailyDua && (
+          <DailyContentCard
+            type="prayer"
+            arabic={dailyDua.ARABIC_TEXT}
+            turkish={dailyDua.TURKISH_TEXT}
+            reference="Hisn Muslim"
+          />
+        )}
+
+        {/* Reklam 2 */}
+        {!user?.isPremium && <AdPlaceholder type="banner" className="mb-4" />}
+
+        {/* ---------- HIZLI ERİŞİM ---------- */}
+        <Card className="bg-white/80 dark:bg-slate-900/40">
           <CardHeader>
-            <CardTitle className="text-lg font-light text-pink-800 dark:text-purple-200">
+            <CardTitle className="text-pink-800 dark:text-purple-200">
               Hızlı Erişim
             </CardTitle>
           </CardHeader>
+
           <CardContent>
-            <div className="grid grid-cols-2 gap-4 w-full">
-              <Button
-                variant="outline"
-                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30 w-full"
-                onClick={() => (window.location.href = '/qibla')}
-              >
-                <div className="w-8 h-8 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">
-                    🧭
-                  </span>
-                </div>
-                <span className="text-sm font-light text-pink-800 dark:text-purple-200">
-                  Kıble
-                </span>
+            <div className="grid grid-cols-2 gap-4">
+
+              <Button onClick={() => (window.location.href='/qibla')}>
+                Kıble
               </Button>
 
-              <Button
-                variant="outline"
-                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30 w-full"
-                onClick={() => (window.location.href = '/quran')}
-              >
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full flex items-center justify-center">
-                  <Book className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-sm font-light text-pink-800 dark:text-purple-200">
-                  Kur'an
-                </span>
+              <Button onClick={() => (window.location.href='/prayer-times')}>
+                Vakitler
               </Button>
 
-              <Button
-                variant="outline"
-                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30 w-full"
-                onClick={() => (window.location.href = '/duas')}
-              >
-                <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">🤲</span>
-                </div>
-                <span className="text-sm font-light text-pink-800 dark:text-purple-200">
-                  Dualar
-                </span>
+              <Button onClick={() => (window.location.href='/quran')}>
+                Kur'an
               </Button>
 
-              <Button
-                variant="outline"
-                className="h-16 flex-col space-y-2 bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 hover:from-pink-200/80 hover:via-orange-200/80 hover:to-blue-200/80 dark:hover:from-purple-700/60 dark:hover:via-blue-700/60 dark:hover:to-cyan-700/60 border border-pink-200/50 dark:border-purple-500/30 w-full"
-                onClick={() => (window.location.href = '/settings')}
-              >
-                <div className="w-8 h-8 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">
-                    ⚙️
-                  </span>
-                </div>
-                <span className="text-sm font-light text-pink-800 dark:text-purple-200">
-                  Ayarlar
-                </span>
+              <Button onClick={() => (window.location.href='/settings')}>
+                Ayarlar
               </Button>
+
             </div>
           </CardContent>
         </Card>
 
-        {/* Stats Card */}
-        <Card className="bg-gradient-to-r from-pink-200/80 via-orange-200/80 to-blue-200/80 dark:from-pink-900/40 dark:via-orange-900/40 dark:to-blue-900/40 border border-pink-300/70 dark:border-pink-700/70 w-full">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-light text-pink-900 dark:text-pink-100">
-                  Bugünkü İstatistikler
-                </h3>
-                <p className="text-sm text-blue-800/90 dark:text-blue-200 font-light">
-                  Namaz: 3/5 • Adım: 4,250 • Kur'an: 15 dk
-                </p>
-              </div>
-              <div className="text-2xl">📊</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Bottom Ad */}
-        {!user?.isPremium && (
-          <div className="w-full">
-            <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
-          </div>
-        )}
-
-        <div className="h-4"></div>
       </div>
     </div>
   );
