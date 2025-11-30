@@ -5,7 +5,6 @@ import {
   Clock, 
   Compass, 
   BookOpen, 
-  Footprints,
   Users,
   Settings,
   Crown
@@ -25,58 +24,57 @@ export const BottomNavigation: React.FC = () => {
   const navItems: NavItem[] = [
     {
       path: '/',
-      icon: <Home className="h-5 w-5" />,
+      icon: <Home className="h-4 w-4" />,
       label: 'Ana Sayfa'
     },
     {
       path: '/prayer-times',
-      icon: <Clock className="h-5 w-5" />,
+      icon: <Clock className="h-4 w-4" />,
       label: 'Vakitler'
     },
     {
       path: '/qibla',
-      icon: <Compass className="h-5 w-5" />,
+      icon: <Compass className="h-4 w-4" />,
       label: 'Kıble'
     },
     {
       path: '/quran',
-      icon: <BookOpen className="h-5 w-5" />,
-      label: 'Kur\'an'
+      icon: <BookOpen className="h-4 w-4" />,
+      label: "Kur'an"
     },
   ];
 
   const secondaryNavItems: NavItem[] = [
     {
       path: '/invite',
-      icon: <Users className="h-5 w-5" />,
+      icon: <Users className="h-4 w-4" />,
       label: 'Davet Et'
     },
     {
       path: '/premium',
-      icon: <Crown className="h-5 w-5" />,
+      icon: <Crown className="h-4 w-4" />,
       label: 'Premium',
       isPremium: true
     },
     {
       path: '/settings',
-      icon: <Settings className="h-5 w-5" />,
+      icon: <Settings className="h-4 w-4" />,
       label: 'Ayarlar'
     }
   ];
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
-  const handleNavigation = (path: string) => {
-    navigate(path);
-  };
+  const isActive = (path: string) => location.pathname === path;
+  const handleNavigation = (path: string) => navigate(path);
 
   return (
     <>
-      {/* Main Bottom Navigation - Sadece bu kısma padding eklendi */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50 safe-area-inset-bottom">
-        <div className="grid grid-cols-5 h-16">
+      {/* MAIN NAV */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 
+                   border-t border-gray-200 dark:border-gray-700 z-50"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="grid grid-cols-4 h-16">
           {navItems.map((item) => (
             <button
               key={item.path}
@@ -87,20 +85,21 @@ export const BottomNavigation: React.FC = () => {
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <div className={`transition-transform ${isActive(item.path) ? 'scale-110' : ''}`}>
+              <div className={`transition-transform duration-200 ${isActive(item.path) ? 'scale-110' : ''}`}>
                 {item.icon}
               </div>
-              <span className="text-xs font-medium truncate">
-                {item.label}
-              </span>
+              <span className="text-xs font-medium truncate">{item.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Secondary Navigation (Floating Action Menu) - Bottom değeri güncellendi */}
-      <div className="fixed bottom-24 right-4 z-40 safe-area-inset-bottom">
-        <div className="flex flex-col space-y-2">
+      {/* FLOATING MENU */}
+      <div 
+        className="fixed right-4 z-40"
+        style={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
+      >
+        <div className="flex flex-col space-y-3">
           {secondaryNavItems.map((item) => (
             <button
               key={item.path}

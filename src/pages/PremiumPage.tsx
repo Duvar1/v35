@@ -15,7 +15,7 @@ export default function PremiumPage() {
           Premium Üyelik
         </h1>
         <p className="text-blue-800 dark:text-cyan-300 font-light">
-          Reklamsız, sınırsız ve özel bir deneyim
+          Aylık abonelik ile sınırsız ve reklamsız deneyim
         </p>
       </div>
 
@@ -26,25 +26,25 @@ export default function PremiumPage() {
         
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-light text-pink-900 dark:text-pink-100">
-            Sadece <span className="font-normal text-orange-700 dark:text-orange-300">44 TL</span>
+            Aylık <span className="font-normal text-orange-700 dark:text-orange-300">44 TL</span>
           </CardTitle>
         </CardHeader>
 
         <CardContent className="text-center space-y-4">
           <Badge className="bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm py-1 px-4 rounded-full">
-            Tek Seferlik Ödeme
+            Aylık Abonelik
           </Badge>
 
           <p className="text-sm text-pink-800 dark:text-purple-200 leading-relaxed">
-            Ömür boyu premium özelliklerin kilidini açın.
+            Premium abonelik ile tüm özelliklerin kilidi açılır ve uygulama tamamen reklamsız olur.
           </p>
 
           <Button
             className="w-full h-12 mt-2 text-lg font-light bg-gradient-to-r 
               from-pink-500 via-orange-500 to-blue-500 text-white shadow-md hover:opacity-90"
-            onClick={() => alert("Ödeme sistemi yakında aktif edilecek.")}
+            onClick={() => alert("Abonelik sistemi yakında aktif edilecek.")}
           >
-            Premium Satın Al
+            Aylık 44 TL’ye Abone Ol
           </Button>
         </CardContent>
       </Card>
@@ -70,20 +70,20 @@ export default function PremiumPage() {
 
           <div className="flex items-center space-x-3">
             <Star className="h-5 w-5 text-yellow-400" />
-            <span className="text-sm">Günün Ayeti, Hadisi ve Duası sınırsız açılır</span>
+            <span className="text-sm">Günün Ayeti, Hadisi ve Duası sınırsız erişim</span>
           </div>
 
           <div className="flex items-center space-x-3">
             <Zap className="h-5 w-5 text-orange-500" />
-            <span className="text-sm">Kıble Modu hızlandırılır ve ek özellikler açılır</span>
+            <span className="text-sm">Kıble Modu hızlandırılır + gelişmiş yön algılama</span>
           </div>
 
           <div className="flex items-center space-x-3">
             <ShieldCheck className="h-5 w-5 text-green-500" />
-            <span className="text-sm">Premium Hatırlatıcılar (Ezber, Zikir, Özel Dua)</span>
+            <span className="text-sm">Premium hatırlatıcılar: Ezber, Zikir, Özel Dua</span>
           </div>
 
-          <div className ="flex items-center space-x-3">
+          <div className="flex items-center space-x-3">
             <Heart className="h-5 w-5 text-pink-500" />
             <span className="text-sm">Tüm temalar ve özel ikon paketleri açılır</span>
           </div>
@@ -91,7 +91,6 @@ export default function PremiumPage() {
         </CardContent>
       </Card>
 
-      {/* ALT BOŞLUK */}
       <div className="h-10"></div>
     </div>
   );
