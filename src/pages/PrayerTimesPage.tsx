@@ -11,11 +11,12 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useUserStore } from '../store/userStore';
 import { PrayerTimesService } from '../services/prayerTimesService';
 import { NotificationService } from '../services/notificationsService';
+import { NotificationSound } from '../plugins/notificationSound';
 import { toast } from 'sonner';
 
 export const PrayerTimesPage: React.FC = () => {
   const { prayerTimes, loading, setPrayerTimes } = usePrayerStore();
-  const { city } = useSettingsStore();   // << DISTRICT SİLİNDİ
+  const { city } = useSettingsStore();
   const { user } = useUserStore();
 
   const [reminderSettings, setReminderSettings] = useState<{
@@ -29,7 +30,7 @@ export const PrayerTimesPage: React.FC = () => {
     'Yatsı': { enabled: false, reminderTime: '10' },
   });
 
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [selectedSound, setSelectedSound] = useState<string | null>(null);
   const [scheduledNotifications, setScheduledNotifications] = useState<any[]>([]);
   const [notificationStatus, setNotificationStatus] = useState<string>('Bekleniyor...');
 
@@ -39,14 +40,14 @@ export const PrayerTimesPage: React.FC = () => {
       try {
         const status = await NotificationService.checkStatus();
         setNotificationStatus(status);
-        
+
         const scheduled = await NotificationService.getScheduledNotifications();
         setScheduledNotifications(scheduled);
-        
+
         if (prayerTimes) {
           const newSettings = { ...reminderSettings };
           prayerTimes.prayers.forEach(prayer => {
-            const isScheduled = scheduled.some(notif => 
+            const isScheduled = scheduled.some(notif =>
               notif.extra?.prayerName === prayer.name
             );
             newSettings[prayer.name] = {
@@ -80,12 +81,29 @@ export const PrayerTimesPage: React.FC = () => {
     loadPrayerTimes();
   }, [city, setPrayerTimes]);
 
+  // Kullanıcı melodi seçtiğinde çalışacak fonksiyon
+  const handleSelectSound = async () => {
+    try {
+      const result = await NotificationSound.pick();
+
+      if (result?.uri) {
+        setSelectedSound(result.uri);
+        toast.success("Melodi seçildi");
+      } else {
+        toast.info("Melodi seçilmedi");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Melodi seçilemedi");
+    }
+  };
+
   const handleToggleReminder = async (prayerName: string) => {
     const newEnabled = !reminderSettings[prayerName]?.enabled;
-    
+
     try {
       await NotificationService.requestPermissions();
-      
+
       setReminderSettings(prev => ({
         ...prev,
         [prayerName]: {
@@ -102,9 +120,9 @@ export const PrayerTimesPage: React.FC = () => {
             name: prayer.name,
             time: prayer.time,
             reminderOffset: parseInt(reminderSettings[prayerName]?.reminderTime || '10'),
-            soundEnabled: soundEnabled
+            sound: selectedSound || null
           });
-          
+
           toast.success(`${prayerName} hatırlatması ayarlandı`);
 
           const scheduled = await NotificationService.getScheduledNotifications();
@@ -123,7 +141,7 @@ export const PrayerTimesPage: React.FC = () => {
     } catch (error) {
       console.error('Bildirim hatası:', error);
       toast.error('Bildirim ayarlanamadı');
-      
+
       setReminderSettings(prev => ({
         ...prev,
         [prayerName]: {
@@ -136,7 +154,7 @@ export const PrayerTimesPage: React.FC = () => {
 
   const handleReminderTimeChange = async (prayerName: string, time: string) => {
     const oldSettings = { ...reminderSettings[prayerName] };
-    
+
     setReminderSettings(prev => ({
       ...prev,
       [prayerName]: {
@@ -150,15 +168,15 @@ export const PrayerTimesPage: React.FC = () => {
         const prayer = prayerTimes.prayers.find(p => p.name === prayerName);
         if (prayer) {
           await NotificationService.cancelPrayerNotification(prayer.id);
-          
+
           await NotificationService.schedulePrayerNotification({
             id: prayer.id,
             name: prayer.name,
             time: prayer.time,
             reminderOffset: parseInt(time),
-            soundEnabled: soundEnabled
+            sound: selectedSound || null
           });
-          
+
           toast.success(`${prayerName} hatırlatma süresi güncellendi`);
 
           const scheduled = await NotificationService.getScheduledNotifications();
@@ -168,7 +186,7 @@ export const PrayerTimesPage: React.FC = () => {
     } catch (error) {
       console.error('Bildirim güncellenemedi:', error);
       toast.error('Hatırlatma süresi güncellenemedi');
-      
+
       setReminderSettings(prev => ({
         ...prev,
         [prayerName]: {
@@ -182,9 +200,9 @@ export const PrayerTimesPage: React.FC = () => {
   const handleToggleAllReminders = async (checked: boolean) => {
     try {
       await NotificationService.requestPermissions();
-      
+
       const newSettings = { ...reminderSettings };
-      
+
       if (checked) {
         if (prayerTimes) {
           for (const prayer of prayerTimes.prayers) {
@@ -193,9 +211,9 @@ export const PrayerTimesPage: React.FC = () => {
               name: prayer.name,
               time: prayer.time,
               reminderOffset: parseInt(newSettings[prayer.name]?.reminderTime || '10'),
-              soundEnabled: soundEnabled
+              sound: selectedSound || null
             });
-            
+
             newSettings[prayer.name].enabled = true;
           }
           toast.success('Tüm hatırlatmalar açıldı');
@@ -203,17 +221,17 @@ export const PrayerTimesPage: React.FC = () => {
       } else {
         await NotificationService.cancelAllNotifications();
         toast.info('Tüm hatırlatmalar kapatıldı');
-        
+
         Object.keys(newSettings).forEach(prayer => {
           newSettings[prayer].enabled = false;
         });
       }
-      
+
       setReminderSettings(newSettings);
 
       const scheduled = await NotificationService.getScheduledNotifications();
       setScheduledNotifications(scheduled);
-      
+
     } catch (error) {
       console.error('Tüm bildirimler ayarlanamadı:', error);
       toast.error('Tüm hatırlatmalar ayarlanamadı');
@@ -226,19 +244,19 @@ export const PrayerTimesPage: React.FC = () => {
 
   const getNextPrayer = () => {
     if (!prayerTimes) return null;
-    
+
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
-    
+
     for (const prayer of prayerTimes.prayers) {
       const [hours, minutes] = prayer.time.split(':').map(Number);
       const prayerTime = hours * 60 + minutes;
-      
+
       if (prayerTime > currentTime) {
         return prayer.name;
       }
     }
-    
+
     return prayerTimes.prayers[0]?.name || null;
   };
 
@@ -285,7 +303,7 @@ export const PrayerTimesPage: React.FC = () => {
           </div>
         )}
 
-        <Card className="bg-gradient-to-r from-amber-50/80 via-yellow-50/80 to-orange-50/80 dark:from-amber-900/30 dark:via-yellow-900/30 dark:to-orange-900/30 border-amber-200/50 dark:border-amber-500/30">
+        <Card className="bg-gradient-tọr from-amber-50/80 via-yellow-50/80 to-orange-50/80 dark:from-amber-900/30 dark:via-yellow-900/30 dark:to-orange-900/30 border-amber-200/50 dark:border-amber-500/30">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
@@ -323,30 +341,6 @@ export const PrayerTimesPage: React.FC = () => {
           )}
         </div>
 
-        <Card className="bg-gradient-to-r from-green-50/80 via-emerald-50/80 to-teal-50/80 dark:from-green-900/30 dark:via-emerald-900/30 dark:to-teal-900/30 border-green-200/50 dark:border-green-500/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-800 dark:text-green-300">
-                  🔔 Bildirim Durumu
-                </p>
-                <p className="text-xs text-green-700 dark:text-green-400">
-                  {scheduledNotifications.length > 0 
-                    ? `${scheduledNotifications.length} aktif hatırlatma`
-                    : 'Aktif hatırlatma yok'}
-                </p>
-              </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                notificationStatus.includes('Aktif') 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
-                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
-              }`}>
-                {notificationStatus}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
         <Card className="bg-gradient-to-r from-pink-50/80 via-orange-50/80 to-blue-50/80 dark:from-purple-900/40 dark:via-blue-900/40 dark:to-cyan-900/40 border-pink-200/50 dark:border-purple-500/30 w-full">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
@@ -354,10 +348,15 @@ export const PrayerTimesPage: React.FC = () => {
               <span>Genel Ayarlar</span>
             </CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-4">
+
+            {/* Tüm Hatırlatmalar */}
             <div className="flex items-center justify-between w-full">
               <div className="flex-1">
-                <h3 className="font-medium text-pink-800 dark:text-purple-200">Tüm Hatırlatmaları Aç/Kapat</h3>
+                <h3 className="font-medium text-pink-800 dark:text-purple-200">
+                  Tüm Hatırlatmaları Aç/Kapat
+                </h3>
               </div>
               <Switch
                 checked={Object.values(reminderSettings).every(s => s.enabled)}
@@ -366,27 +365,44 @@ export const PrayerTimesPage: React.FC = () => {
               />
             </div>
 
+            {/* Melodi seçme butonu */}
             <div className="flex items-center justify-between w-full">
               <div className="flex-1">
-                <h3 className="font-medium text-pink-800 dark:text-purple-200">Ezan Sesi</h3>
+                <h3 className="font-medium text-pink-800 dark:text-purple-200">
+                  Melodi Seç
+                </h3>
+
+                {selectedSound && (
+                  <p className="text-xs text-pink-700 dark:text-purple-300 mt-1 break-all">
+                    Seçilen: {selectedSound}
+                  </p>
+                )}
               </div>
-              <Switch 
-                checked={soundEnabled}
-                onCheckedChange={setSoundEnabled}
-                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-pink-500 data-[state=checked]:to-blue-500"
-              />
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectSound}
+                className="border-blue-300 text-blue-700 hover:bg-blue-50 
+                           dark:border-blue-500 dark:text-blue-300 dark:hover:bg-blue-900/50"
+              >
+                Seç
+              </Button>
             </div>
 
+            {/* Test bildirim */}
             <div className="flex items-center justify-between w-full">
               <div className="flex-1">
-                <h3 className="font-medium text-pink-800 dark:text-purple-200">Test Bildirimi</h3>
+                <h3 className="font-medium text-pink-800 dark:text-purple-200">
+                  Test Bildirimi
+                </h3>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={async () => {
                   try {
-                    await NotificationService.sendTestNotification();
+await NotificationService.sendTestNotification();
                     toast.success('Test bildirimi gönderildi');
                   } catch (error) {
                     toast.error('Test bildirimi gönderilemedi');
@@ -397,9 +413,11 @@ export const PrayerTimesPage: React.FC = () => {
                 Test Et
               </Button>
             </div>
+
           </CardContent>
         </Card>
 
+        {/* Uyarı Kartı */}
         <Card className="bg-gradient-to-r from-red-50/80 via-rose-50/80 to-pink-50/80 dark:from-red-900/30 dark:via-rose-900/30 dark:to-pink-900/30 border-red-200/50 dark:border-red-500/30">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -407,7 +425,7 @@ export const PrayerTimesPage: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-red-800 dark:text-red-300">⚠️ Önemli Uyarı</p>
                 <p className="text-xs text-red-700 dark:text-red-400 mt-1">
-                  • Pil tasarrufu modu bildirimleri geciktirebilir <br/>
+                  • Pil tasarrufu modu bildirimleri geciktirebilir <br />
                   • Uygulama kapalı olsa bile hatırlatmalar çalışır
                 </p>
               </div>

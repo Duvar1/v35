@@ -36,13 +36,14 @@ export class NotificationService {
   }
 
   // Namaz bildirimi zamanla
-  static async schedulePrayerNotification(prayer: {
-    id: string;
-    name: string;
-    time: string;
-    reminderOffset: number;
-    soundEnabled: boolean;
-  }) {
+ static async schedulePrayerNotification(prayer: {
+  id: string;
+  name: string;
+  time: string;
+  reminderOffset: number;
+  sound?: string | null;
+})
+ {
     try {
       // Zamanı hesapla
       const [hours, minutes] = prayer.time.split(':').map(Number);
@@ -57,23 +58,24 @@ export class NotificationService {
       }
 
       // Bildirimi zamanla
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: this.generateNotificationId(prayer.id, notificationTime),
-            title: `⏰ ${prayer.name} Vakti Yaklaşıyor`,
-            body: `${prayer.reminderOffset} dakika sonra ${prayer.name} vakti (${prayer.time})`,
-            schedule: { at: notificationTime },
-            sound: prayer.soundEnabled ? 'azan.mp3' : null,
-            extra: {
-              prayerName: prayer.name,
-              prayerTime: prayer.time,
-              reminderOffset: prayer.reminderOffset,
-              type: 'prayer_reminder'
-            }
-          },
-        ],
-      });
+  await LocalNotifications.schedule({
+  notifications: [
+    {
+      id: this.generateNotificationId(prayer.id, notificationTime),
+      title: `⏰ ${prayer.name} Vakti Yaklaşıyor`,
+      body: `${prayer.reminderOffset} dakika sonra ${prayer.name} vakti (${prayer.time})`,
+      schedule: { at: notificationTime },
+      sound: prayer.sound ?? undefined, // ← EKLENEN SATIR
+      extra: {
+        prayerName: prayer.name,
+        prayerTime: prayer.time,
+        reminderOffset: prayer.reminderOffset,
+        type: 'prayer_reminder'
+      }
+    },
+  ],
+});
+
 
       return true;
     } catch (error) {
@@ -127,20 +129,21 @@ export class NotificationService {
   }
 
   // Test bildirimi gönder
-  static async sendTestNotification() {
+static async sendTestNotification(sound?: string | null) {
     try {
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: 999,
-            title: '✅ Test Bildirimi',
-            body: 'Namaz hatırlatma sistemi çalışıyor!',
-            schedule: { at: new Date(Date.now() + 1000) }, // 1 saniye sonra
-            sound: 'azan.mp3',
-            extra: { type: 'test' }
-          },
-        ],
-      });
+     await LocalNotifications.schedule({
+  notifications: [
+    {
+      id: 999,
+      title: '✅ Test Bildirimi',
+      body: 'Namaz hatırlatma sistemi çalışıyor!',
+      schedule: { at: new Date(Date.now() + 1000) },
+      sound: sound ?? undefined,
+      extra: { type: 'test' }
+    },
+  ],
+});
+
     } catch (error) {
       console.error('Test bildirimi hatası:', error);
       throw error;
