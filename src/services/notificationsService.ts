@@ -1,103 +1,156 @@
-export class NotificationsService {
-  private static instance: NotificationsService;
-  
-  static getInstance(): NotificationsService {
-    if (!this.instance) {
-      this.instance = new NotificationsService();
+// src/services/notificationsService.ts
+import { LocalNotifications } from '@capacitor/local-notifications';
+
+export class NotificationService {
+  // İzinleri iste
+  static async requestPermissions(): Promise<boolean> {
+    try {
+      const permission = await LocalNotifications.checkPermissions();
+      
+      if (permission.display === 'granted') {
+        return true;
+      }
+      
+      const result = await LocalNotifications.requestPermissions();
+      return result.display === 'granted';
+    } catch (error) {
+      console.error('İzin hatası:', error);
+      return false;
     }
-    return this.instance;
   }
-  
-  // Check if notifications are supported
-  isSupported(): boolean {
-    return 'Notification' in window && 'serviceWorker' in navigator;
-  }
-  
-  // Get current permission status
-  getPermission(): NotificationPermission {
-    if (!this.isSupported()) return 'denied';
-    return Notification.permission;
-  }
-  
-  // Request notification permission
-  async requestPermission(): Promise<NotificationPermission> {
-    if (!this.isSupported()) {
-      throw new Error('Notifications are not supported');
+
+  // Bildirim durumunu kontrol et
+  static async checkStatus(): Promise<string> {
+    try {
+      const permission = await LocalNotifications.checkPermissions();
+      
+      if (permission.display !== 'granted') {
+        return 'İzin Gerekli';
+      }
+      
+      const scheduled = await this.getScheduledNotifications();
+      return scheduled.length > 0 ? 'Aktif' : 'Pasif';
+    } catch (error) {
+      return 'Hata';
     }
-    
-    const permission = await Notification.requestPermission();
-    return permission;
   }
-  
-  // Show a simple notification
-  showNotification(title: string, options?: NotificationOptions): void {
-    if (!this.isSupported() || Notification.permission !== 'granted') {
-      console.warn('Cannot show notification: permission not granted');
-      return;
+
+  // Namaz bildirimi zamanla
+  static async schedulePrayerNotification(prayer: {
+    id: string;
+    name: string;
+    time: string;
+    reminderOffset: number;
+    soundEnabled: boolean;
+  }) {
+    try {
+      // Zamanı hesapla
+      const [hours, minutes] = prayer.time.split(':').map(Number);
+      const notificationTime = new Date();
+      notificationTime.setHours(hours);
+      notificationTime.setMinutes(minutes - prayer.reminderOffset);
+      notificationTime.setSeconds(0);
+
+      // Eğer geçmiş bir zamansa yarın için ayarla
+      if (notificationTime < new Date()) {
+        notificationTime.setDate(notificationTime.getDate() + 1);
+      }
+
+      // Bildirimi zamanla
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: this.generateNotificationId(prayer.id, notificationTime),
+            title: `⏰ ${prayer.name} Vakti Yaklaşıyor`,
+            body: `${prayer.reminderOffset} dakika sonra ${prayer.name} vakti (${prayer.time})`,
+            schedule: { at: notificationTime },
+            sound: prayer.soundEnabled ? 'azan.mp3' : null,
+            extra: {
+              prayerName: prayer.name,
+              prayerTime: prayer.time,
+              reminderOffset: prayer.reminderOffset,
+              type: 'prayer_reminder'
+            }
+          },
+        ],
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Bildirim zamanlama hatası:', error);
+      throw error;
     }
-    
-    const notification = new Notification(title, {
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
-      ...options
-    });
-    
-    // Auto close after 5 seconds
-    setTimeout(() => {
-      notification.close();
-    }, 5000);
   }
-  
-  // TODO: Schedule prayer time notifications
-  async schedulePrayerNotification(prayerName: string, time: string): Promise<void> {
-    console.log(`Schedule notification for ${prayerName} at ${time} - TODO: Implement with service worker`);
-    
-    // This would require service worker implementation for background scheduling
-    // For now, just log the intent
+
+  // Tekil namaz bildirimini iptal et
+  static async cancelPrayerNotification(prayerId: string) {
+    try {
+      const scheduled = await this.getScheduledNotifications();
+      const notificationToCancel = scheduled.find(n => 
+        n.extra?.type === 'prayer_reminder' && 
+        n.id.toString().includes(prayerId)
+      );
+
+      if (notificationToCancel) {
+        await LocalNotifications.cancel({
+          notifications: [{ id: notificationToCancel.id }]
+        });
+      }
+    } catch (error) {
+      console.error('Bildirim iptal hatası:', error);
+    }
   }
-  
-  // TODO: Cancel scheduled notification
-  async cancelPrayerNotification(prayerName: string): Promise<void> {
-    console.log(`Cancel notification for ${prayerName} - TODO: Implement with service worker`);
+
+  // Tüm bildirimleri iptal et - DÜZELTİLDİ: cancel kullan
+  static async cancelAllNotifications() {
+    try {
+      const scheduled = await this.getScheduledNotifications();
+      const ids = scheduled.map(n => ({ id: n.id }));
+      
+      if (ids.length > 0) {
+        await LocalNotifications.cancel({ notifications: ids });
+      }
+    } catch (error) {
+      console.error('Tüm bildirimler iptal hatası:', error);
+    }
   }
-  
-  // TODO: Firebase Cloud Messaging integration
-  async initializeFCM(): Promise<void> {
-    console.log('Initialize FCM - TODO: Add Firebase Cloud Messaging');
-    
-    // This would require Firebase SDK and service worker setup
-    // Placeholder for FCM token registration
+
+  // Zamanlanmış bildirimleri getir
+  static async getScheduledNotifications(): Promise<any[]> {
+    try {
+      const pending = await LocalNotifications.getPending();
+      return pending.notifications || [];
+    } catch (error) {
+      console.error('Zamanlanmış bildirimler alınamadı:', error);
+      return [];
+    }
   }
-  
-  // Show prayer time notification
-  showPrayerNotification(prayerName: string, isReminder: boolean = false): void {
-    const title = isReminder 
-      ? `${prayerName} vaktine 15 dakika kaldı`
-      : `${prayerName} vakti girdi`;
-    
-    const body = isReminder
-      ? 'Namaza hazırlanabilirsiniz'
-      : 'Namaz vakti geldi';
-    
-    this.showNotification(title, {
-      body,
-      tag: `prayer-${prayerName}`,
-      requireInteraction: true,
-      actions: [
-        {
-          action: 'dismiss',
-          title: 'Tamam'
-        }
-      ]
-    });
+
+  // Test bildirimi gönder
+  static async sendTestNotification() {
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 999,
+            title: '✅ Test Bildirimi',
+            body: 'Namaz hatırlatma sistemi çalışıyor!',
+            schedule: { at: new Date(Date.now() + 1000) }, // 1 saniye sonra
+            sound: 'azan.mp3',
+            extra: { type: 'test' }
+          },
+        ],
+      });
+    } catch (error) {
+      console.error('Test bildirimi hatası:', error);
+      throw error;
+    }
   }
-  
-  // Show daily verse notification
-  showDailyVerseNotification(verse: string, source: string): void {
-    this.showNotification('Günün Ayeti', {
-      body: verse,
-      tag: 'daily-verse',
-      icon: '/favicon.svg'
-    });
+
+  // Benzersiz bildirim ID'si oluştur
+  private static generateNotificationId(prayerId: string, date: Date): number {
+    const baseId = prayerId.charCodeAt(0) + prayerId.charCodeAt(prayerId.length - 1);
+    const dateId = date.getDate() * 100 + date.getHours() * 10 + date.getMinutes();
+    return baseId * 10000 + dateId;
   }
 }

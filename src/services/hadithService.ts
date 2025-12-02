@@ -1,38 +1,41 @@
-// src/services/hadithService.ts
+// Basit bir ücretsiz Google Translate hack'i
+async function translateToTurkish(text: string): Promise<string> {
+  try {
+    const url =
+      "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=tr&dt=t&q=" +
+      encodeURIComponent(text);
 
-const HADITH_API_BASE_URL = "https://hadeethenc.com/api/v1"; 
+    const res = await fetch(url);
+    const data = await res.json();
+    return data[0]?.map((t: any) => t[0]).join("") || text;
+  } catch {
+    return text; // Çeviri başarısızsa İngilizce bırak
+  }
+}
 
-// ... fetchHadithCategories ve fetchHadithsByCategory tanımları ...
+export async function fetchDailyHadith() {
+  try {
+    const res = await fetch("/data/sahih-muslim.json");
+    if (!res.ok) return null;
 
-export async function fetchDailyRandomHadith(): Promise<any> {
-    const CATEGORY_ID = "5"; // Faziletler ve Adaplar
-    const MAX_HADEETHS = 690; // Toplam Hadis sayısı (Sizin API yanıtınızdan)
-    const PER_PAGE = 20;
-    const MAX_PAGE = Math.ceil(MAX_HADEETHS / PER_PAGE);
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
 
-    // 1. Rastgele bir sayfa seç (1'den MAX_PAGE'e kadar)
-    const randomPage = Math.floor(Math.random() * MAX_PAGE) + 1;
+    const today = Math.floor(Date.now() / 86400000);
+    const index = today % data.length;
+    const item = data[index];
 
-    // 2. Rastgele sayfadaki Hadis listesini çek
-    const listUrl = `${HADITH_API_BASE_URL}/hadeeths/list?language=tr&category_id=${CATEGORY_ID}&page=${randomPage}&per_page=${PER_PAGE}`;
-    
-    const listResponse = await fetch(listUrl);
-    if (!listResponse.ok) throw new Error("Hadis listesi yüklenirken hata oluştu.");
-    const listData = await listResponse.json();
+    // İngilizce metni Türkçeye çevir 🔥
+    const turkishExplanation = await translateToTurkish(item.English_Text);
 
-    if (!listData.data || listData.data.length === 0) {
-        throw new Error("Rastgele sayfada Hadis bulunamadı.");
-    }
+    return {
+      hadeeth: item.Arabic_Text,
+      explanation: turkishExplanation,
+      reference: item.Reference ?? "Sahih Muslim",
+    };
 
-    // 3. Listeden rastgele bir Hadis ID'si seç
-    const randomHadithIndex = Math.floor(Math.random() * listData.data.length);
-    const selectedHadithId = listData.data[randomHadithIndex].id;
-
-    // 4. Seçilen Hadis'in detaylarını çek
-    const detailUrl = `${HADITH_API_BASE_URL}/hadeeths/one/?hadeeth_id=${selectedHadithId}&language=tr`;
-    
-    const detailResponse = await fetch(detailUrl);
-    if (!detailResponse.ok) throw new Error("Hadis detayı yüklenirken hata oluştu.");
-    
-    return await detailResponse.json(); 
+  } catch (err) {
+    console.log("Hadis HATA:", err);
+    return null;
+  }
 }

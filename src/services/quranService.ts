@@ -3,40 +3,46 @@ export interface VerseDetail {
   turkish: string;
   reference: string;
 }
+
 export async function fetchDailyVerse(): Promise<VerseDetail> {
   try {
-    // 1) ARAPÇA AYETİ ÇEK
-    const arabicRes = await fetch("https://api.alquran.cloud/v1/ayah/random");
-    const arabicJson = await arabicRes.json();
+    let verseData = null;
 
-    if (!arabicJson.data) throw new Error("Arapça ayet alınamadı");
+    while (!verseData) {
+      const randomAyah = Math.floor(Math.random() * 6236) + 1;
 
-    const surahNumber = arabicJson.data.surah.number;
-    const verseNumber = arabicJson.data.numberInSurah;
+      const res = await fetch(
+        `https://api.alquran.cloud/v1/ayah/${randomAyah}/editions/quran-uthmani,tr.diyanet`
+      );
+      const json = await res.json();
 
-    // 2) TÜRKÇE MEAL JSON DOSYASI (tamamı tek istek)
-    const turkishRes = await fetch(
-      "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/tur-translation.json"
-    );
-    const turkishJson = await turkishRes.json();
+      const arabic = json.data[0]?.text;
+      const turkish = json.data[1]?.text;
+      const surah = json.data[0]?.surah?.englishName;
+      const verse = json.data[0]?.numberInSurah;
 
-    const turkishSurah = turkishJson[surahNumber];
-    const turkishVerse = turkishSurah?.verses?.[verseNumber - 1]?.text;
+      if (!arabic) continue;
 
-    return {
-      arabic: arabicJson.data.text,
-      turkish: turkishVerse || "Türkçe meal bulunamadı.",
-      reference: `${arabicJson.data.surah.englishName} ${verseNumber}. Ayet`
-    };
+      // *** KELİME SAYISI FİLTRESİ (Arapça metin) ***
+      const wordCount = arabic.trim().split(/\s+/).length;
+
+      if (wordCount >= 5 && wordCount <= 10) {
+        verseData = {
+          arabic,
+          turkish,
+          reference: `${surah} ${verse}. Ayet`,
+        };
+      }
+    }
+
+    return verseData;
 
   } catch (err) {
-    console.error("fetchDailyVerse ERROR →", err);
-
-    // Fallback (hiçbir API çalışmazsa)
+    console.error("Ayet çekme hatası:", err);
     return {
       arabic: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
-      turkish: "Rahmân ve Rahîm olan Allah'ın adıyla.",
-      reference: "Fatiha 1"
+      turkish: "Rahman ve Rahim olan Allah'ın adıyla.",
+      reference: "Fatiha 1",
     };
   }
 }
