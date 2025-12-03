@@ -66,7 +66,7 @@ export class NotificationService {
             title: `⏰ ${prayer.name} ${prayer.reminderOffset} dk sonra`,
             body: `${prayer.time} → ${prayer.name} için hazırlanın.`,
             schedule: { at: beforeTime },
-            sound: "alert_sound_long.wav",   // 🔔 FIXED SOUND
+            sound: "alert_sound",   // 🔔 FIXED SOUND
             extra: {
               type: "before",
               prayerName: prayer.name
@@ -79,7 +79,7 @@ export class NotificationService {
             title: `🕌 ${prayer.name} Vakti Geldi`,
             body: `${prayer.time} → ${prayer.name} vakti başladı.`,
             schedule: { at: exactTime },
-            sound: "alert_sound_long.wav",   // 🔔 FIXED SOUND
+            sound: "alert_sound",   // 🔔 FIXED SOUND
             extra: {
               type: "exact",
               prayerName: prayer.name
@@ -152,7 +152,7 @@ export class NotificationService {
             title: "🔊 Test Bildirimi",
             body: "Ses çalma testi!",
             schedule: { at: new Date(Date.now() + 1000) },
-            sound: "alert_sound.wav",    // 🔔 FIXED SOUND
+            sound: "alert_sound",    // 🔔 FIXED SOUND
             extra: { type: "test" }
           }
         ]
