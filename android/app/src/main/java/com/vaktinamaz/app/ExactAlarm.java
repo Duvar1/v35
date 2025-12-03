@@ -4,12 +4,10 @@ import android.content.Intent;
 import android.os.Build;
 import android.provider.Settings;
 
-import com.getcapacitor.CapacitorPlugin;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
-import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.PluginMethod;
 
-@CapacitorPlugin(name = "ExactAlarm")
 public class ExactAlarm extends Plugin {
 
     @PluginMethod
