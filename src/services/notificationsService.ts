@@ -2,9 +2,6 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 
 export class NotificationService {
 
-  // ---------------------------------------------------
-  // 1) Bildirim izinleri
-  // ---------------------------------------------------
   static async requestPermissions(): Promise<boolean> {
     try {
       const permission = await LocalNotifications.checkPermissions();
@@ -19,9 +16,6 @@ export class NotificationService {
     }
   }
 
-  // ---------------------------------------------------
-  // 2) Durum kontrol
-  // ---------------------------------------------------
   static async checkStatus(): Promise<string> {
     try {
       const permission = await LocalNotifications.checkPermissions();
@@ -36,19 +30,18 @@ export class NotificationService {
   }
 
   // ---------------------------------------------------
-  // 3) ÇİFT BİLDİRİM OLUŞTUR: (Önce + Vakit geldi)
+  // ÇİFT BİLDİRİM: ÖNCE + VAKİT GELDİ
   // ---------------------------------------------------
   static async schedulePrayerNotification(prayer: {
     id: string;
     name: string;
     time: string;
     reminderOffset: number;
-    sound?: string | null;
   }) {
     try {
       const [hour, minute] = prayer.time.split(":").map(Number);
 
-      // === VAKİT GELDİ BİLDİRİMİ (EXACT) ===
+      // TAM VAKTİ
       const exactTime = new Date();
       exactTime.setHours(hour);
       exactTime.setMinutes(minute);
@@ -58,41 +51,35 @@ export class NotificationService {
         exactTime.setDate(exactTime.getDate() + 1);
       }
 
-      // === ÖNCE BİLDİRİMİ (OFFSET) ===
+      // ÖNCE BİLDİRİM (OFFSET)
       const beforeTime = new Date(exactTime);
       beforeTime.setMinutes(beforeTime.getMinutes() - prayer.reminderOffset);
 
-      // Benzersiz ID'ler
       const beforeId = Number(`${prayer.id}1`);
       const exactId  = Number(`${prayer.id}2`);
 
       await LocalNotifications.schedule({
         notifications: [
-          // ---------------------
-          // 1) Önce Bildirimi
-          // ---------------------
+          // 1) Önce bildirim
           {
             id: beforeId,
             title: `⏰ ${prayer.name} ${prayer.reminderOffset} dk sonra`,
             body: `${prayer.time} → ${prayer.name} için hazırlanın.`,
             schedule: { at: beforeTime },
-            sound: prayer.sound ?? undefined,
+            sound: "alert_sound_long.wav",   // 🔔 FIXED SOUND
             extra: {
               type: "before",
-              prayerName: prayer.name,
-              offset: prayer.reminderOffset
+              prayerName: prayer.name
             }
           },
 
-          // ---------------------
-          // 2) Vakit Geldi Bildirimi
-          // ---------------------
+          // 2) Tam vakit bildirimi
           {
             id: exactId,
             title: `🕌 ${prayer.name} Vakti Geldi`,
             body: `${prayer.time} → ${prayer.name} vakti başladı.`,
             schedule: { at: exactTime },
-            sound: prayer.sound ?? undefined,
+            sound: "alert_sound_long.wav",   // 🔔 FIXED SOUND
             extra: {
               type: "exact",
               prayerName: prayer.name
@@ -110,7 +97,7 @@ export class NotificationService {
   }
 
   // ---------------------------------------------------
-  // 4) Namaza ait tüm bildirimleri iptal et (2 bildirimi birden siler)
+  // Çift bildirimi iptal et
   // ---------------------------------------------------
   static async cancelPrayerNotification(prayerId: string) {
     try {
@@ -121,7 +108,7 @@ export class NotificationService {
         notifications: [
           { id: beforeId },
           { id: exactId }
-        ],
+        ]
       });
 
     } catch (error) {
@@ -129,12 +116,10 @@ export class NotificationService {
     }
   }
 
-  // ---------------------------------------------------
-  // 5) Tüm bildirimleri iptal et
-  // ---------------------------------------------------
   static async cancelAllNotifications() {
     try {
       const scheduled = await this.getScheduledNotifications();
+
       await LocalNotifications.cancel({
         notifications: scheduled.map(n => ({ id: n.id }))
       });
@@ -144,9 +129,6 @@ export class NotificationService {
     }
   }
 
-  // ---------------------------------------------------
-  // 6) Pending bildirimleri getir
-  // ---------------------------------------------------
   static async getScheduledNotifications(): Promise<any[]> {
     try {
       const pending = await LocalNotifications.getPending();
@@ -159,9 +141,9 @@ export class NotificationService {
   }
 
   // ---------------------------------------------------
-  // 7) SESLİ TEST BİLDİRİMİ
+  // TEST BİLDİRİMİ (her zaman sesli)
   // ---------------------------------------------------
-  static async sendTestNotification(sound?: string | null) {
+  static async sendTestNotification() {
     try {
       await LocalNotifications.schedule({
         notifications: [
@@ -170,7 +152,7 @@ export class NotificationService {
             title: "🔊 Test Bildirimi",
             body: "Ses çalma testi!",
             schedule: { at: new Date(Date.now() + 1000) },
-            sound: sound ?? undefined,
+            sound: "alert_sound.wav",    // 🔔 FIXED SOUND
             extra: { type: "test" }
           }
         ]

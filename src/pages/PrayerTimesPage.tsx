@@ -97,7 +97,6 @@ export const PrayerTimesPage: React.FC = () => {
           name: prayer.name,
           time: prayer.time,
           reminderOffset: parseInt(reminderSettings[prayerName].reminderTime),
-          sound: DEFAULT_SOUND
         });
 
         toast.success(`${prayerName} hatırlatması açıldı`);
@@ -134,7 +133,6 @@ export const PrayerTimesPage: React.FC = () => {
           name: prayer.name,
           time: prayer.time,
           reminderOffset: parseInt(time),
-          sound: DEFAULT_SOUND
         });
 
 const msg =
@@ -170,7 +168,6 @@ toast.success(msg);
             name: prayer.name,
             time: prayer.time,
             reminderOffset: parseInt(updated[prayer.name].reminderTime),
-            sound: DEFAULT_SOUND
           });
 
           updated[prayer.name].enabled = true;
@@ -302,7 +299,7 @@ toast.success(msg);
                 size="sm"
                 onClick={async () => {
                   try {
-                    await NotificationService.sendTestNotification(DEFAULT_SOUND);
+                    await NotificationService.sendTestNotification();
                     toast.success("Test bildirimi gönderildi");
                   } catch {
                     toast.error("Gönderilemedi");
