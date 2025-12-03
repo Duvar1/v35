@@ -13,7 +13,7 @@ import { PrayerTimesService } from '../services/prayerTimesService';
 import { NotificationService } from '../services/notificationsService';
 import { toast } from 'sonner';
 
-const DEFAULT_SOUND = "alert_sound_long.wav";
+const DEFAULT_SOUND = "alert_sound";
 
 export const PrayerTimesPage: React.FC = () => {
   const { prayerTimes, loading, setPrayerTimes } = usePrayerStore();
