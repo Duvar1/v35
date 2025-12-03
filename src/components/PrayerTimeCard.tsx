@@ -99,6 +99,7 @@ export function PrayerTimeCard({
             value={reminderTime}
             onChange={(e) => handleReminderChange(e.target.value)}
           >
+            <option value="0">Vaktinde</option>
             <option value="5">5 dk önce</option>
             <option value="10">10 dk önce</option>
             <option value="15">15 dk önce</option>

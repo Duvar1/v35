@@ -1,4 +1,3 @@
-// src/services/notificationsService.ts
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 export class NotificationService {
@@ -13,6 +12,7 @@ export class NotificationService {
 
       const result = await LocalNotifications.requestPermissions();
       return result.display === 'granted';
+
     } catch (error) {
       console.error("İzin hatası:", error);
       return false;
@@ -36,7 +36,7 @@ export class NotificationService {
   }
 
   // ---------------------------------------------------
-  // 3) Namaz bildirimi oluştur
+  // 3) ÇİFT BİLDİRİM OLUŞTUR: (Önce + Vakit geldi)
   // ---------------------------------------------------
   static async schedulePrayerNotification(prayer: {
     id: string;
@@ -46,61 +46,83 @@ export class NotificationService {
     sound?: string | null;
   }) {
     try {
-      // Namaz saatinden önce kaç dakika?
-      const [h, m] = prayer.time.split(":").map(Number);
-      const notifTime = new Date();
-      notifTime.setHours(h);
-      notifTime.setMinutes(m - prayer.reminderOffset);
-      notifTime.setSeconds(0);
+      const [hour, minute] = prayer.time.split(":").map(Number);
 
-      // Geçmiş saatse → yarına at
-      if (notifTime < new Date()) {
-        notifTime.setDate(notifTime.getDate() + 1);
+      // === VAKİT GELDİ BİLDİRİMİ (EXACT) ===
+      const exactTime = new Date();
+      exactTime.setHours(hour);
+      exactTime.setMinutes(minute);
+      exactTime.setSeconds(0);
+
+      if (exactTime < new Date()) {
+        exactTime.setDate(exactTime.getDate() + 1);
       }
+
+      // === ÖNCE BİLDİRİMİ (OFFSET) ===
+      const beforeTime = new Date(exactTime);
+      beforeTime.setMinutes(beforeTime.getMinutes() - prayer.reminderOffset);
+
+      // Benzersiz ID'ler
+      const beforeId = Number(`${prayer.id}1`);
+      const exactId  = Number(`${prayer.id}2`);
 
       await LocalNotifications.schedule({
         notifications: [
+          // ---------------------
+          // 1) Önce Bildirimi
+          // ---------------------
           {
-            id: this.generateNotificationId(prayer.id, notifTime),
-            title: `⏰ ${prayer.name} Vakti Yaklaşıyor`,
-            body: `${prayer.reminderOffset} dakika sonra ${prayer.name} vakti (${prayer.time})`,
-            schedule: { at: notifTime },
-            sound: prayer.sound ?? undefined,   // ← SES BURADA DEVREYE GİRİYOR
+            id: beforeId,
+            title: `⏰ ${prayer.name} ${prayer.reminderOffset} dk sonra`,
+            body: `${prayer.time} → ${prayer.name} için hazırlanın.`,
+            schedule: { at: beforeTime },
+            sound: prayer.sound ?? undefined,
             extra: {
+              type: "before",
               prayerName: prayer.name,
-              prayerTime: prayer.time,
-              reminderOffset: prayer.reminderOffset,
-              type: "prayer_reminder",
-            },
+              offset: prayer.reminderOffset
+            }
           },
-        ],
+
+          // ---------------------
+          // 2) Vakit Geldi Bildirimi
+          // ---------------------
+          {
+            id: exactId,
+            title: `🕌 ${prayer.name} Vakti Geldi`,
+            body: `${prayer.time} → ${prayer.name} vakti başladı.`,
+            schedule: { at: exactTime },
+            sound: prayer.sound ?? undefined,
+            extra: {
+              type: "exact",
+              prayerName: prayer.name
+            }
+          }
+        ]
       });
 
       return true;
 
     } catch (error) {
-      console.error("Bildirim zamanlama hatası:", error);
+      console.error("Çift bildirim zamanlama hatası:", error);
       throw error;
     }
   }
 
   // ---------------------------------------------------
-  // 4) Tek namaz bildirimi iptal
+  // 4) Namaza ait tüm bildirimleri iptal et (2 bildirimi birden siler)
   // ---------------------------------------------------
   static async cancelPrayerNotification(prayerId: string) {
     try {
-      const scheduled = await this.getScheduledNotifications();
-      const found = scheduled.find(
-        n =>
-          n.extra?.type === "prayer_reminder" &&
-          n.id.toString().includes(prayerId)
-      );
+      const beforeId = Number(`${prayerId}1`);
+      const exactId  = Number(`${prayerId}2`);
 
-      if (found) {
-        await LocalNotifications.cancel({
-          notifications: [{ id: found.id }],
-        });
-      }
+      await LocalNotifications.cancel({
+        notifications: [
+          { id: beforeId },
+          { id: exactId }
+        ],
+      });
 
     } catch (error) {
       console.error("Bildirim iptal hatası:", error);
@@ -113,10 +135,8 @@ export class NotificationService {
   static async cancelAllNotifications() {
     try {
       const scheduled = await this.getScheduledNotifications();
-      if (scheduled.length === 0) return;
-
       await LocalNotifications.cancel({
-        notifications: scheduled.map(n => ({ id: n.id })),
+        notifications: scheduled.map(n => ({ id: n.id }))
       });
 
     } catch (error) {
@@ -131,6 +151,7 @@ export class NotificationService {
     try {
       const pending = await LocalNotifications.getPending();
       return pending.notifications ?? [];
+
     } catch (error) {
       console.error("Zamanlanmış bildirimler alınamadı:", error);
       return [];
@@ -138,7 +159,7 @@ export class NotificationService {
   }
 
   // ---------------------------------------------------
-  // 7) TEST BİLDİRİMİ (SES DESTEKLİ)
+  // 7) SESLİ TEST BİLDİRİMİ
   // ---------------------------------------------------
   static async sendTestNotification(sound?: string | null) {
     try {
@@ -147,26 +168,17 @@ export class NotificationService {
           {
             id: 999,
             title: "🔊 Test Bildirimi",
-            body: "Sesli bildirim testi!",
+            body: "Ses çalma testi!",
             schedule: { at: new Date(Date.now() + 1000) },
-            sound: sound ?? undefined,   // ← SES İSTEĞE BAĞLI
-            extra: { type: "test" },
-          },
-        ],
+            sound: sound ?? undefined,
+            extra: { type: "test" }
+          }
+        ]
       });
 
     } catch (error) {
       console.error("Test bildirimi hatası:", error);
       throw error;
     }
-  }
-
-  // ---------------------------------------------------
-  // 8) ID Üretici
-  // ---------------------------------------------------
-  private static generateNotificationId(prayerId: string, date: Date): number {
-    const base = prayerId.charCodeAt(0) + prayerId.charCodeAt(prayerId.length - 1);
-    const dateId = date.getHours() * 100 + date.getMinutes();
-    return base * 10000 + dateId;
   }
 }

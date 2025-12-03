@@ -137,7 +137,12 @@ export const PrayerTimesPage: React.FC = () => {
           sound: DEFAULT_SOUND
         });
 
-        toast.success(`${prayerName} hatırlatma süresi güncellendi`);
+const msg =
+  time === "0"
+    ? `${prayerName} hatırlatma süresi VAKTİNDE olarak güncellendi`
+    : `${prayerName} hatırlatma süresi ${time} dk önce olarak güncellendi`;
+
+toast.success(msg);
 
         setScheduledNotifications(await NotificationService.getScheduledNotifications());
       }
