@@ -1,0 +1,23 @@
+<!-- android/app/src/main/res/drawable/ic_stat_prayer.xml -->
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_stat_background"/>
+    <foreground>
+        <vector
+            android:width="24dp"
+            android:height="24dp"
+            android:viewportWidth="24"
+            android:viewportHeight="24">
+            
+            <!-- Minare şekli -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M12,2 L16,6 L16,10 L20,10 L20,14 L16,14 L16,18 L12,22 L8,18 L8,14 L4,14 L4,10 L8,10 L8,6 Z"/>
+                
+            <!-- Hilal şekli -->
+            <path
+                android:fillColor="#FF6B35"
+                android:pathData="M15,12 A3,3 0 1,1 9,12 A3,3 0 1,1 15,12"/>
+        </vector>
+    </foreground>
+</adaptive-icon>
