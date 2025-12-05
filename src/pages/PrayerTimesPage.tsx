@@ -1,235 +1,254 @@
 // src/pages/PrayerTimesPage.tsx
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Clock, Bell, MapPin, RefreshCw, AlertCircle, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PrayerTimeCard } from '../components/PrayerTimeCard';
-import { AdPlaceholder } from '@/components/AdPlaceholder';
-import { usePrayerStore } from '../store/prayerStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { useUserStore } from '@/store/userStore';
-import { PrayerTimesService } from '../services/prayerTimesService';
-import { NotificationService } from '../services/notificationsService';
-import { toast } from 'sonner';
 
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import {
+  Clock,
+  Bell,
+  MapPin,
+  RefreshCw,
+  AlertCircle,
+  Info,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PrayerTimeCard } from "../components/PrayerTimeCard";
+import { AdPlaceholder } from "@/components/AdPlaceholder";
+import { usePrayerStore } from "../store/prayerStore";
+import { useSettingsStore } from "../store/settingsStore";
+import { useUserStore } from "@/store/userStore";
+import { PrayerTimesService } from "../services/prayerTimesService";
+import { NotificationService } from "../services/notificationsService";
+import { toast } from "sonner";
+
+/* ======================================================
+   ANA SAYFA BAŞLANGICI
+====================================================== */
 export const PrayerTimesPage: React.FC = () => {
   const { prayerTimes, loading, setPrayerTimes } = usePrayerStore();
   const { city } = useSettingsStore();
   const { user } = useUserStore();
 
-  const [reminderSettings, setReminderSettings] = useState<{
-    [key: string]: { enabled: boolean; reminderTime: string }
-  }>({
-    İmsak: { enabled: false, reminderTime: '10' },
-    Güneş: { enabled: false, reminderTime: '10' },
-    Öğle: { enabled: false, reminderTime: '10' },
-    İkindi: { enabled: false, reminderTime: '10' },
-    Akşam: { enabled: false, reminderTime: '10' },
-    Yatsı: { enabled: false, reminderTime: '10' },
+  /* ======================================================
+     STATE
+  ====================================================== */
+  const [reminderSettings, setReminderSettings] = useState<
+    Record<string, { enabled: boolean; reminderTime: string }>
+  >({
+    İmsak: { enabled: false, reminderTime: "10" },
+    Güneş: { enabled: false, reminderTime: "10" },
+    Öğle: { enabled: false, reminderTime: "10" },
+    İkindi: { enabled: false, reminderTime: "10" },
+    Akşam: { enabled: false, reminderTime: "10" },
+    Yatsı: { enabled: false, reminderTime: "10" },
   });
 
   const [scheduledNotifications, setScheduledNotifications] = useState<any[]>([]);
-  const [notificationStatus, setNotificationStatus] = useState<string>('Bekleniyor...');
+  const [notificationStatus, setNotificationStatus] = useState("Bekleniyor...");
 
-  // Bildirim durumunu kontrol et
+  /* ======================================================
+     1) NAMAZ VAKİTLERİNİ YÜKLE
+  ====================================================== */
+  useEffect(() => {
+    const loadTimes = async () => {
+      try {
+        const times = await PrayerTimesService.getPrayerTimes(city || "İstanbul");
+        setPrayerTimes(times);
+      } catch {
+        toast.error("Namaz vakitleri yüklenemedi");
+      }
+    };
+    loadTimes();
+  }, [city]);
+
+  /* ======================================================
+     2) BİLDİRİM DURUMU + PLANLANMIŞLAR
+  ====================================================== */
   useEffect(() => {
     const checkStatus = async () => {
       try {
         const status = await NotificationService.getNotificationStatus();
-        setNotificationStatus(status.hasPermission ? 'Aktif' : 'İzin Gerekli');
+        setNotificationStatus(status.hasPermission ? "Aktif" : "İzin Gerekli");
 
         const scheduled = await NotificationService.getScheduledNotifications();
         setScheduledNotifications(scheduled);
 
         if (prayerTimes) {
-          const newSettings = { ...reminderSettings };
-          prayerTimes.prayers.forEach(prayer => {
-            const isScheduled = scheduled.some(
-              notif =>
-                notif.extra?.prayerName === prayer.name ||
-                notif.extra?.prayerId === prayer.id
+          const updated = { ...reminderSettings };
+
+          prayerTimes.prayers.forEach((p) => {
+            updated[p.name].enabled = scheduled.some(
+              (notif) =>
+                notif.extra?.prayerId === p.id ||
+                notif.extra?.prayerName === p.name
             );
-            newSettings[prayer.name].enabled = isScheduled;
           });
-          setReminderSettings(newSettings);
+
+          setReminderSettings(updated);
         }
       } catch {
-        setNotificationStatus('Kontrol edilemedi');
+        setNotificationStatus("Kontrol edilemedi");
       }
     };
 
     checkStatus();
   }, [prayerTimes]);
 
-  // Namaz vakitlerini yükle
-  useEffect(() => {
-    const loadTimes = async () => {
-      try {
-        const times = await PrayerTimesService.getPrayerTimes(city || 'İstanbul');
-        setPrayerTimes(times);
-      } catch {
-        toast.error('Namaz vakitleri yüklenemedi');
-      }
-    };
-    loadTimes();
-  }, [city]);
-
-  // Aç/Kapat
+  /* ======================================================
+     3) TEK BİR NAMAZ BİLDİRİMİNİ AÇ/KAPAT
+  ====================================================== */
   const handleToggleReminder = async (prayerName: string) => {
-    const newEnabled = !reminderSettings[prayerName].enabled;
-    const prayer = prayerTimes?.prayers.find(p => p.name === prayerName);
+    const prayer = prayerTimes?.prayers.find((p) => p.name === prayerName);
     if (!prayer) return;
 
+    const newEnabled = !reminderSettings[prayerName].enabled;
+
+    const permission = await NotificationService.checkPermissions();
+    if (!permission) {
+      toast.error("📢 Bildirim izni gerekli. Ayarlardan izin vermeniz gerekiyor.");
+      return;
+    }
+
     try {
-      const hasPermission = await NotificationService.checkPermissions();
-      if (!hasPermission) {
-        const granted = await NotificationService.requestPermissions();
-        if (!granted) {
-          toast.error("📢 Bildirim izni verilmedi");
-          return;
-        }
-      }
-
-      setReminderSettings(prev => ({
-        ...prev,
-        [prayerName]: { ...prev[prayerName], enabled: newEnabled }
-      }));
-
+      // Açılıyorsa schedule
       if (newEnabled) {
-        await NotificationService.schedulePrayerNotification({
+        const result = await NotificationService.schedulePrayerNotification({
           id: prayer.id,
           name: prayer.name,
           time: prayer.time,
-          minutesBefore: parseInt(reminderSettings[prayerName].reminderTime),
+          minutesBefore: Number(reminderSettings[prayerName].reminderTime),
         });
 
-        const offset = reminderSettings[prayerName].reminderTime;
+        if (!result.success) {
+          toast.error("Hatırlatma kurulamadı");
+          return;
+        }
+
         toast.success(
-          offset === "0"
-            ? `${prayerName} vakti geldiğinde hatırlatılacak`
-            : `${prayerName} hatırlatması ${offset} dakika önce ayarlandı`
+          reminderSettings[prayerName].reminderTime === "0"
+            ? `${prayerName} vakti geldğinde hatırlatılacak`
+            : `${prayerName} hatırlatması ayarlandı`
         );
       } else {
         await NotificationService.cancelPrayerNotifications(prayer.id);
         toast.info(`${prayerName} hatırlatması kapatıldı`);
       }
 
+      // UI güncelle
+      setReminderSettings((prev) => ({
+        ...prev,
+        [prayerName]: { ...prev[prayerName], enabled: newEnabled },
+      }));
+
       const scheduled = await NotificationService.getScheduledNotifications();
       setScheduledNotifications(scheduled);
-
-    } catch (error) {
+    } catch (err) {
       toast.error("Bildirim ayarlanamadı");
-      setReminderSettings(prev => ({
-        ...prev,
-        [prayerName]: { ...prev[prayerName], enabled: !newEnabled }
-      }));
     }
   };
 
-  // Hatırlatma süresi güncelleme
-  const handleReminderTimeChange = async (prayerName: string, time: string) => {
-    const oldTime = reminderSettings[prayerName].reminderTime;
-    const prayer = prayerTimes?.prayers.find(p => p.name === prayerName);
+  /* ======================================================
+     4) HATIRLATMA SÜRESİNİ DEĞİŞTİR
+  ====================================================== */
+  const handleReminderTimeChange = async (prayerName: string, value: string) => {
+    const prayer = prayerTimes?.prayers.find((p) => p.name === prayerName);
     if (!prayer) return;
 
-    setReminderSettings(prev => ({
-      ...prev,
-      [prayerName]: { ...prev[prayerName], reminderTime: time }
+    const wasEnabled = reminderSettings[prayerName].enabled;
+
+    setReminderSettings((p) => ({
+      ...p,
+      [prayerName]: { ...p[prayerName], reminderTime: value },
     }));
 
-    try {
-      if (reminderSettings[prayerName].enabled) {
-        await NotificationService.cancelPrayerNotifications(prayer.id);
-        await NotificationService.schedulePrayerNotification({
+    // Eğer açık ise tekrar schedule et
+    if (wasEnabled) {
+      await NotificationService.cancelPrayerNotifications(prayer.id);
+
+      const res = await NotificationService.schedulePrayerNotification({
+        id: prayer.id,
+        name: prayer.name,
+        time: prayer.time,
+        minutesBefore: Number(value),
+      });
+
+      if (res.success) {
+        toast.success(`${prayerName} hatırlatma süresi güncellendi`);
+      } else {
+        toast.error("Güncellenemedi");
+      }
+
+      const scheduled = await NotificationService.getScheduledNotifications();
+      setScheduledNotifications(scheduled);
+    }
+  };
+
+  /* ======================================================
+     5) TÜM BİLDİRİMLERİ AÇ/KAPAT
+  ====================================================== */
+  const handleToggleAllReminders = async (checked: boolean) => {
+    const permission = await NotificationService.checkPermissions();
+    if (!permission) {
+      toast.error("📢 Bildirim izni gerekli");
+      return;
+    }
+
+    const updated = { ...reminderSettings };
+
+    if (checked) {
+      // Hepsini aç
+      for (const prayer of prayerTimes?.prayers || []) {
+        const result = await NotificationService.schedulePrayerNotification({
           id: prayer.id,
           name: prayer.name,
           time: prayer.time,
-          minutesBefore: parseInt(time),
+          minutesBefore: Number(updated[prayer.name].reminderTime),
         });
 
-        toast.success(
-          time === "0"
-            ? `${prayerName} hatırlatma süresi VAKTİNDE olarak güncellendi`
-            : `${prayerName} hatırlatma süresi ${time} dakika önce olarak güncellendi`
-        );
-
-        const scheduled = await NotificationService.getScheduledNotifications();
-        setScheduledNotifications(scheduled);
-      }
-    } catch {
-      setReminderSettings(prev => ({
-        ...prev,
-        [prayerName]: { ...prev[prayerName], reminderTime: oldTime }
-      }));
-      toast.error("Süre güncellenemedi");
-    }
-  };
-
-  // Tümünü aç/kapat
-  const handleToggleAllReminders = async (checked: boolean) => {
-    try {
-      const hasPermission = await NotificationService.checkPermissions();
-      if (!hasPermission) {
-        const granted = await NotificationService.requestPermissions();
-        if (!granted) {
-          toast.error("📢 Bildirim izni gerekli");
-          return;
-        }
-      }
-
-      const updated = { ...reminderSettings };
-
-      if (checked) {
-        for (const prayer of prayerTimes?.prayers || []) {
-          await NotificationService.schedulePrayerNotification({
-            id: prayer.id,
-            name: prayer.name,
-            time: prayer.time,
-            minutesBefore: parseInt(updated[prayer.name].reminderTime),
-          });
+        if (result.success) {
           updated[prayer.name].enabled = true;
         }
-        toast.success("Tüm hatırlatmalar açıldı");
-      } else {
-        await NotificationService.cancelAllNotifications();
-        Object.keys(updated).forEach(k => (updated[k].enabled = false));
-        toast.info("Tüm hatırlatmalar kapatıldı");
       }
 
-      setReminderSettings(updated);
-      const scheduled = await NotificationService.getScheduledNotifications();
-      setScheduledNotifications(scheduled);
-
-    } catch {
-      toast.error("Toplu işlem yapılamadı");
+      toast.success("Tüm hatırlatmalar açıldı");
+    } else {
+      await NotificationService.cancelAllNotifications();
+      Object.keys(updated).forEach((name) => (updated[name].enabled = false));
+      toast.info("Tüm hatırlatmalar kapatıldı");
     }
+
+    setReminderSettings(updated);
+
+    const scheduled = await NotificationService.getScheduledNotifications();
+    setScheduledNotifications(scheduled);
   };
 
-  // Refresh
-  const handleRefresh = () => window.location.reload();
-
-  // Sonraki namaz
+  /* ======================================================
+     SONRAKİ NAMAZ
+  ====================================================== */
   const getNextPrayer = () => {
     if (!prayerTimes) return null;
-
     const now = new Date();
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
 
     for (const p of prayerTimes.prayers) {
       const [h, m] = p.time.split(":").map(Number);
-      if (h * 60 + m > nowMinutes) return p.name;
+      if (h * 60 + m > nowMin) return p.name;
     }
+
     return prayerTimes.prayers[0]?.name || null;
   };
 
   const nextPrayer = getNextPrayer();
 
+  /* ======================================================
+     UI
+  ====================================================== */
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900">
 
       {/* HEADER */}
-      <div className="sticky top-0 z-10 backdrop-blur-md border-b p-4 bg-gradient-to-r">
+      <div className="sticky top-0 z-10 backdrop-blur-md border-b p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <Clock className="h-6 w-6 text-blue-600" />
@@ -241,7 +260,7 @@ export const PrayerTimesPage: React.FC = () => {
               <MapPin className="h-4 w-4" />
               <span>{city}</span>
             </div>
-            <Button size="sm" variant="outline" onClick={handleRefresh}>
+            <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -250,45 +269,42 @@ export const PrayerTimesPage: React.FC = () => {
 
       {/* CONTENT */}
       <div className="px-4 space-y-6 pb-20 pt-6">
-
+        
         {!user?.isPremium && <AdPlaceholder type="banner" />}
 
-        {/* Bilgi kartı */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-start space-x-3">
-              <Info className="h-5 w-5 text-amber-600" />
-              <div>
-                <p className="font-medium text-amber-800">{city} için vakitler</p>
-                <p className="text-xs text-amber-600">
-                  Bildirimler ezan vaktinden önce seçtiğiniz dakikada çalar.
-                </p>
-              </div>
+          <CardContent className="p-4 flex space-x-3">
+            <Info className="h-5 w-5 text-amber-600" />
+            <div>
+              <p className="font-medium text-amber-800">{city} için vakitler</p>
+              <p className="text-xs text-amber-600">
+                Bildirimler ezan vaktinden önce seçtiğiniz dakikada çalar.
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Namaz listesi */}
+        {/* NAMAZ KARTLARI */}
         <div className="space-y-2">
           {loading
             ? [...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-pink-200 h-20 rounded-xl"></div>
+                <div key={i} className="animate-pulse bg-pink-200 h-20 rounded-xl" />
               ))
-            : prayerTimes?.prayers.map(prayer => (
+            : prayerTimes?.prayers.map((p) => (
                 <PrayerTimeCard
-                  key={prayer.name}
-                  name={prayer.name}
-                  time={prayer.time}
-                  isNext={prayer.name === nextPrayer}
-                  enabled={reminderSettings[prayer.name].enabled}
-                  onToggle={() => handleToggleReminder(prayer.name)}
-                  reminderTime={reminderSettings[prayer.name].reminderTime}
-                  onReminderChange={t => handleReminderTimeChange(prayer.name, t)}
+                  key={p.name}
+                  name={p.name}
+                  time={p.time}
+                  isNext={p.name === nextPrayer}
+                  enabled={reminderSettings[p.name].enabled}
+                  onToggle={() => handleToggleReminder(p.name)}
+                  reminderTime={reminderSettings[p.name].reminderTime}
+                  onReminderChange={(v) => handleReminderTimeChange(p.name, v)}
                 />
               ))}
         </div>
 
-        {/* Bildirim Durumu */}
+        {/* BİLDİRİM DURUMU */}
         <Card>
           <CardContent className="p-4 flex justify-between items-center">
             <div>
@@ -299,7 +315,6 @@ export const PrayerTimesPage: React.FC = () => {
                   : "Aktif hatırlatma yok"}
               </p>
             </div>
-
             <span
               className={`px-2 py-1 text-xs rounded-full ${
                 notificationStatus === "Aktif"
@@ -312,7 +327,7 @@ export const PrayerTimesPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Genel Ayarlar */}
+        {/* GENEL AYARLAR */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -323,15 +338,16 @@ export const PrayerTimesPage: React.FC = () => {
 
           <CardContent className="space-y-4">
 
-            {/* Tüm hatırlatmaları aç/kapat */}
+            {/* Tümünü aç/kapat */}
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="font-medium">Tüm Hatırlatmaları Aç/Kapat</h3>
-                <p className="text-xs text-gray-600">Tüm vakitler için hatırlatmayı yönet</p>
+                <p className="text-xs text-gray-600">
+                  Tüm vakitler için hatırlatmayı yönet
+                </p>
               </div>
-
               <Switch
-                checked={Object.values(reminderSettings).every(s => s.enabled)}
+                checked={Object.values(reminderSettings).every((x) => x.enabled)}
                 onCheckedChange={handleToggleAllReminders}
               />
             </div>
@@ -340,7 +356,9 @@ export const PrayerTimesPage: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="font-medium">Test Bildirimi</h3>
-                <p className="text-xs text-gray-600">Bildirim sistemini test et</p>
+                <p className="text-xs text-gray-600">
+                  Bildirim sistemini test et
+                </p>
               </div>
 
               <Button
@@ -361,14 +379,14 @@ export const PrayerTimesPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Uyarı */}
+        {/* UYARI */}
         <Card>
-          <CardContent className="p-4 flex items-start space-x-3">
+          <CardContent className="p-4 flex space-x-3">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <p className="text-xs text-red-700">
-              • Uygulama tamamen kapatılırsa bildirimler çalışmayabilir<br />
-              • Pil tasarrufu modu bildirimleri engelleyebilir<br />
-              • Her gün otomatik yenilenir
+              • Uygulama tamamen kapatılırsa bildirimler çalışmayabilir <br />
+              • Pil tasarrufu modu bildirimleri engelleyebilir <br />
+              • Bildirimler her gün otomatik yenilenir
             </p>
           </CardContent>
         </Card>
