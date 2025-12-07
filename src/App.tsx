@@ -22,7 +22,6 @@ import { InvitePage } from "./pages/InvitePage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
-// Layout
 import { BottomNavigation } from "./components/BottomNavigation";
 
 
@@ -41,7 +40,7 @@ const queryClient = new QueryClient({
 
 
 // ---------------------------------------------------------
-// App Initialization Hook
+// App Initialization
 // ---------------------------------------------------------
 function useAppInitialization() {
   const [loading, setLoading] = useState(true);
@@ -49,24 +48,24 @@ function useAppInitialization() {
   useEffect(() => {
     const init = async () => {
       try {
-        console.log("🚀 App initializing...");
+        console.log("🚀 App başlatılıyor...");
 
-        // 1. Konum izni (1 saniye gecikmeli)
+        // Konum izni
         setTimeout(() => {
           Geolocation.requestPermissions().catch(() => {});
-        }, 1000);
+        }, 800);
 
-        // 2. Bildirim servisi
+        // Bildirim servisi
         await NotificationService.initialize();
 
-        // 3. App lifecycle
+        // App lifecycle
         CapacitorApp.addListener("appStateChange", async (state) => {
           if (state.isActive) {
             await NotificationService.onAppResume();
           }
         });
 
-        // 4. Background Sync (15 dakika)
+        // Background sync
         setInterval(async () => {
           if (!document.hidden) {
             await NotificationService.validateScheduledNotifications();
@@ -88,9 +87,9 @@ function useAppInitialization() {
 
 
 // ---------------------------------------------------------
-// Layout (Bottom Navigation + Sayfa İçeriği)
+// Layout
 // ---------------------------------------------------------
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const hideNav = ["/login", "/splash"].includes(location.pathname);
 
@@ -104,7 +103,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 
 // ---------------------------------------------------------
-// İçerik Router
+// Router + İçerik
 // ---------------------------------------------------------
 function AppContent() {
   useScrollTop();
@@ -136,20 +135,25 @@ function AppContent() {
 
 
 // ---------------------------------------------------------
-// ANA UYGULAMA
+// ANA UYGULAMA – FINAL TOUCH
 // ---------------------------------------------------------
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+
+        {/* ✅ Toast artık en doğru yerde */}
+        <Toaster
+          position="bottom-center"
+          richColors
+          duration={1600}
+          closeButton
+        />
+
         <BrowserRouter>
-
           <AppContent />
-
-          {/* 🔥 Toast tam doğru yerde */}
-          <Toaster position="top-right" />
-
         </BrowserRouter>
+
       </TooltipProvider>
     </QueryClientProvider>
   );
