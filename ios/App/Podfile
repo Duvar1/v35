@@ -1,7 +1,6 @@
 platform :ios, '13.0'
 use_frameworks!
 
-# Capacitor helper
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
@@ -16,25 +15,14 @@ end
 target 'App' do
   capacitor_pods
 
-  # ---------- CAPACITOR RESMİ PLUGINLER -----------
+  # Capacitor resmi pluginler
+  pod 'CapacitorApp', :path => '../../../node_modules/@capacitor/app'
+  pod 'CapacitorBrowser', :path => '../../../node_modules/@capacitor/browser'
+  pod 'CapacitorGeolocation', :path => '../../../node_modules/@capacitor/geolocation'
+  pod 'CapacitorLocalNotifications', :path => '../../../node_modules/@capacitor/local-notifications'
+  pod 'CapacitorBackgroundRunner', :path => '../../../node_modules/@capacitor/background-runner'
 
-  pod 'CapacitorApp', 
-      :path => '../../../node_modules/@capacitor/app'
-
-  pod 'CapacitorBrowser', 
-      :path => '../../../node_modules/@capacitor/browser'
-
-  pod 'CapacitorGeolocation', 
-      :path => '../../../node_modules/@capacitor/geolocation'
-
-  pod 'CapacitorLocalNotifications', 
-      :path => '../../../node_modules/@capacitor/local-notifications'
-
-  pod 'CapacitorBackgroundRunner', 
-      :path => '../../../node_modules/@capacitor/background-runner'
-
-  # ---------- COMMUNITY PLUGINLER -----------
-  pod 'CapacitorCommunityHttp',
-      :path => '../../../node_modules/@capacitor-community/http'
+  # Community pluginler (TEK doğru tanım)
+  pod 'CapacitorCommunityHttp', :path => '../../../node_modules/@capacitor-community/http'
 
 end
