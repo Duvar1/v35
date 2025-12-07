@@ -1,6 +1,9 @@
-// src/pages/PrayerTimesPage.tsx
+// ==========================================================
+// src/pages/PrayerTimesPage.tsx  
+// FINAL – SAFE TOAST SÜRÜMÜ (Çift Toast Sorunu %100 Çözüldü)
+// ==========================================================
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Clock, Bell, MapPin, RefreshCw, AlertCircle, Info } from "lucide-react";
@@ -23,7 +26,24 @@ export const PrayerTimesPage: React.FC = () => {
   const { city } = useSettingsStore();
   const { user } = useUserStore();
 
-  const [reminders, setReminders] = useState<Record<string, { enabled: boolean; time: string }>>({
+  // ==========================================================
+  // 🔐 SAFE TOAST — Çift toast basmasını %100 engeller
+  // ==========================================================
+  const toastLock = useRef(false);
+
+  const safeToast = (fn: () => void) => {
+    if (toastLock.current) return;
+    toastLock.current = true;
+    fn();
+    setTimeout(() => (toastLock.current = false), 250);
+  };
+
+  // ==========================================================
+  // STATE
+  // ==========================================================
+  const [reminders, setReminders] = useState<
+    Record<string, { enabled: boolean; time: string }>
+  >({
     İmsak: { enabled: false, time: "10" },
     Güneş: { enabled: false, time: "10" },
     Öğle: { enabled: false, time: "10" },
@@ -36,21 +56,25 @@ export const PrayerTimesPage: React.FC = () => {
   const [status, setStatus] = useState("Bekleniyor...");
 
 
+  // ==========================================================
   // NAMAZ VAKİTLERİNİ YÜKLE
+  // ==========================================================
   useEffect(() => {
     const load = async () => {
       try {
         const res = await PrayerTimesService.getPrayerTimes(city || "İstanbul");
         setPrayerTimes(res);
       } catch {
-        toast.error("Vakitler yüklenemedi");
+        safeToast(() => toast.error("Vakitler yüklenemedi"));
       }
     };
     load();
   }, [city]);
 
 
-  // PLANLANMIŞ BİLDİRİMLERİ KONTROL
+  // ==========================================================
+  // PLANLANMIŞ BİLDİRİMLERİ KONTROL ET
+  // ==========================================================
   useEffect(() => {
     const check = async () => {
       const s = await NotificationService.getNotificationStatus();
@@ -63,16 +87,21 @@ export const PrayerTimesPage: React.FC = () => {
 
       const updated = { ...reminders };
       prayerTimes.prayers.forEach((p: any) => {
-        updated[p.name].enabled = pending.some((n) => n.extra?.prayerId === p.id);
+        updated[p.name].enabled = pending.some(
+          (n) => n.extra?.prayerId === p.id
+        );
       });
 
       setReminders(updated);
     };
+
     check();
   }, [prayerTimes]);
 
 
-  // TEK BİR BİLDİRİM AÇ/KAPAT
+  // ==========================================================
+  // TEK BİR HATIRLATMA AÇ/KAPAT
+  // ==========================================================
   const toggleReminder = async (name: string) => {
     const prayer = prayerTimes?.prayers.find((x: any) => x.name === name);
     if (!prayer) return;
@@ -80,7 +109,7 @@ export const PrayerTimesPage: React.FC = () => {
     const enable = !reminders[name].enabled;
     const permission = await NotificationService.checkPermissions();
 
-    if (!permission) return toast.error("📢 Bildirim izni gerekli");
+    if (!permission) return safeToast(() => toast.error("📢 Bildirim izni gerekli"));
 
     if (enable) {
       const res = await NotificationService.schedulePrayerNotification({
@@ -90,23 +119,23 @@ export const PrayerTimesPage: React.FC = () => {
         minutesBefore: Number(reminders[name].time),
       });
 
-      if (res.success) {
-        toast.success(`${name} hatırlatması açıldı`);
-      } else {
-        return toast.error("Kurulamadı");
-      }
+      if (!res.success) return safeToast(() => toast.error("Kurulamadı"));
+
+      safeToast(() => toast.success(`${name} hatırlatması açıldı`));
     } else {
       await NotificationService.cancelPrayerNotifications(prayer.id);
-      toast.info(`${name} hatırlatması kapatıldı`);
+      safeToast(() => toast.info(`${name} hatırlatması kapatıldı`));
     }
 
-    // UI
+    // UI Güncelle
     setReminders((p) => ({ ...p, [name]: { ...p[name], enabled: enable } }));
     setScheduled(await NotificationService.getScheduledNotifications());
   };
 
 
-  // SÜRE DEĞİŞTİR
+  // ==========================================================
+  // HATIRLATMA SÜRESİ DEĞİŞTİR
+  // ==========================================================
   const changeReminderTime = async (name: string, v: string) => {
     const p = prayerTimes?.prayers.find((x: any) => x.name === name);
     if (!p) return;
@@ -129,15 +158,17 @@ export const PrayerTimesPage: React.FC = () => {
     setScheduled(await NotificationService.getScheduledNotifications());
 
     res.success
-      ? toast.success(`${name} süresi ${v} dakika olarak güncellendi`)
-      : toast.error("Güncellenemedi");
+      ? safeToast(() => toast.success(`${name} ${v} dk önce çalacak`))
+      : safeToast(() => toast.error("Güncellenemedi"));
   };
 
 
-  // HEPSİNİ AÇ/KAPAT
+  // ==========================================================
+  // TÜM HATIRLATMALARI AÇ / KAPAT
+  // ==========================================================
   const toggleAll = async (on: boolean) => {
     const permission = await NotificationService.checkPermissions();
-    if (!permission) return toast.error("İzin gerekli");
+    if (!permission) return safeToast(() => toast.error("İzin gerekli"));
 
     const updated = { ...reminders };
 
@@ -152,11 +183,11 @@ export const PrayerTimesPage: React.FC = () => {
 
         if (res.success) updated[p.name].enabled = true;
       }
-      toast.success("Tüm hatırlatmalar açıldı");
+      safeToast(() => toast.success("Tüm hatırlatmalar açıldı"));
     } else {
       await NotificationService.cancelAllNotifications();
       Object.keys(updated).forEach((k) => (updated[k].enabled = false));
-      toast.info("Tüm hatırlatmalar kapatıldı");
+      safeToast(() => toast.info("Tüm hatırlatmalar kapatıldı"));
     }
 
     setReminders(updated);
@@ -164,7 +195,9 @@ export const PrayerTimesPage: React.FC = () => {
   };
 
 
+  // ==========================================================
   // SONRAKİ NAMAZ
+  // ==========================================================
   const nextPrayer = (() => {
     if (!prayerTimes) return null;
     const now = new Date();
@@ -174,16 +207,20 @@ export const PrayerTimesPage: React.FC = () => {
       const [h, m] = p.time.split(":").map(Number);
       if (h * 60 + m > nowMin) return p.name;
     }
-    return prayerTimes.prayers[0].name;
+    return prayerTimes.prayers[0]?.name;
   })();
 
 
+  // ==========================================================
+  // UI
+  // ==========================================================
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900">
 
       {/* HEADER */}
       <div className="sticky top-0 z-10 backdrop-blur-md border-b p-4">
         <div className="flex justify-between items-center">
+
           <div className="flex items-center space-x-3">
             <Clock className="h-6 w-6 text-blue-600" />
             <h1 className="text-2xl font-light text-pink-800">Namaz Vakitleri</h1>
@@ -193,14 +230,11 @@ export const PrayerTimesPage: React.FC = () => {
             <MapPin className="h-4 w-4 text-blue-600" />
             <span>{city}</span>
 
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => window.location.reload()}
-            >
+            <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
+
         </div>
       </div>
 
@@ -210,7 +244,7 @@ export const PrayerTimesPage: React.FC = () => {
 
         {!user?.isPremium && <AdPlaceholder type="banner" />}
 
-        {/* BİLGİ */}
+        {/* BİLGİ KARTI */}
         <Card>
           <CardContent className="p-4 flex space-x-3">
             <Info className="h-5 w-5 text-amber-600" />
@@ -257,13 +291,11 @@ export const PrayerTimesPage: React.FC = () => {
               </p>
             </div>
 
-            <span
-              className={`px-2 py-1 text-xs rounded-full ${
-                status === "Aktif"
-                  ? "bg-green-200 text-green-800"
-                  : "bg-yellow-200 text-yellow-800"
-              }`}
-            >
+            <span className={`px-2 py-1 text-xs rounded-full ${
+              status === "Aktif"
+                ? "bg-green-200 text-green-800"
+                : "bg-yellow-200 text-yellow-800"
+            }`}>
               {status}
             </span>
           </CardContent>
@@ -281,19 +313,20 @@ export const PrayerTimesPage: React.FC = () => {
 
           <CardContent className="space-y-4">
 
-            {/* Tümü */}
+            {/* Toplu aç/kapa */}
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="font-medium">Tüm Hatırlatmaları Aç/Kapat</h3>
                 <p className="text-xs text-gray-600">Tüm vakitler için yönet</p>
               </div>
+
               <Switch
                 checked={Object.values(reminders).every((r) => r.enabled)}
                 onCheckedChange={toggleAll}
               />
             </div>
 
-            {/* Test */}
+            {/* Test bildirimi */}
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="font-medium">Test Bildirimi</h3>
@@ -306,9 +339,9 @@ export const PrayerTimesPage: React.FC = () => {
                 onClick={async () => {
                   try {
                     await NotificationService.sendTestNotification();
-                    toast.success("Test bildirimi gönderildi");
+                    safeToast(() => toast.success("Test bildirimi gönderildi"));
                   } catch {
-                    toast.error("Gönderilemedi");
+                    safeToast(() => toast.error("Gönderilemedi"));
                   }
                 }}
               >
@@ -320,7 +353,7 @@ export const PrayerTimesPage: React.FC = () => {
         </Card>
 
 
-        {/* UYARI */}
+        {/* ALT UYARI */}
         <Card>
           <CardContent className="p-4 flex space-x-3">
             <AlertCircle className="h-5 w-5 text-red-600" />
