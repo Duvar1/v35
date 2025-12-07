@@ -3,9 +3,7 @@ require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 platform :ios, '14.0'
 use_frameworks!
 
-# workaround to avoid Xcode caching of Pods that requires
-# Product -> Clean Build Folder after new Cordova plugins installed
-# Requires CocoaPods 1.6 or newer
+# workaround to avoid Xcode caching of Pods
 install! 'cocoapods', :disable_input_output_paths => true
 
 def capacitor_pods
@@ -17,13 +15,36 @@ def capacitor_pods
   pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
   pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'
   pod 'CapacitorLocalNotifications', :path => '../../node_modules/@capacitor/local-notifications'
+  
+  # ✅ iOS için ek pluginler
+  pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
+  pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
+  pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
 end
 
 target 'App' do
   capacitor_pods
   # Add your Pods here
+  
+  # ✅ iOS için ek bağımlılıklar
+  pod 'Firebase/Messaging', '~> 10.0' # Push notification için (opsiyonel)
+  pod 'Alamofire', '~> 5.0' # Network için
 end
 
 post_install do |installer|
   assertDeploymentTarget(installer)
+  
+  # ✅ Swift 5 compatibility
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      config.build_settings['SWIFT_VERSION'] = '5.0'
+      
+      # Enable modules
+      config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+      
+      # Disable bitcode (iOS 14+ için gerekli)
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+    end
+  end
 end

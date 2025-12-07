@@ -4,9 +4,19 @@ const config: CapacitorConfig = {
   appId: "com.vaktinamaz.app",
   appName: "Vaktinamaz",
   webDir: "dist",
+  backgroundColor: "#FFFFFF", // Buraya taşı
 
   server: {
     androidScheme: "https"
+  },
+
+  // ✅ SADECE TEMEL iOS AYARLARI
+  ios: {
+    scheme: "App",
+    contentInset: "always",
+    allowsLinkPreview: false,
+    scrollEnabled: true,
+    // Sadece bu 4 property garantili çalışır
   },
 
   android: {
@@ -31,11 +41,10 @@ const config: CapacitorConfig = {
       forceCodeForRefreshToken: true,
     },
 
-    // --------------------------------------
-    // 🔔 SADECE LOCAL NOTIFICATIONS KULLAN
-    // --------------------------------------
     LocalNotifications: {
       sound: "alert_sound.wav",
+      smallIcon: "ic_stat_icon",
+      iconColor: "#FF6B35",
       channelId: "prayer_reminders",
       channelName: "Namaz Hatırlatmaları",
       channelDescription: "Namaz vakitleri için ezan hatırlatmaları",
