@@ -1,18 +1,17 @@
 platform :ios, '13.0'
 use_frameworks!
 
-target 'App' do
-  # Core Capacitor iOS
+def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-
-  # Official Capacitor Plugins
+  pod 'CapacitorCommunityHttp', :path => '../../node_modules/@capacitor-community/http'
   pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+  pod 'CapacitorBackgroundRunner', :path => '../../node_modules/@capacitor/background-runner'
   pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
   pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'
   pod 'CapacitorLocalNotifications', :path => '../../node_modules/@capacitor/local-notifications'
-  pod 'CapacitorBackgroundRunner', :path => '../../node_modules/@capacitor/background-runner'
+end
 
-  # Community Plugins
-  pod 'CapacitorCommunityHttp', :path => '../../node_modules/@capacitor-community/http'
+target 'App' do
+  capacitor_pods
 end
