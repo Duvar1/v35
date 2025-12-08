@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
+import { useThemeStore } from "@/store/themeStore";
+
 import { Capacitor } from "@capacitor/core";
 import { Geolocation } from "@capacitor/geolocation";
 import { App as CapacitorApp } from "@capacitor/app";
@@ -18,7 +20,6 @@ import { PrayerTimesPage } from "./pages/PrayerTimesPage";
 import QiblaPage from "./pages/QiblaPage";
 import { QuranPage } from "./pages/QuranPage";
 import PremiumPage from "./pages/PremiumPage";
-import { InvitePage } from "./pages/InvitePage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
@@ -125,7 +126,6 @@ function AppContent() {
         <Route path="/qibla" element={<QiblaPage />} />
         <Route path="/quran" element={<QuranPage />} />
         <Route path="/premium" element={<PremiumPage />} />
-        <Route path="/invite" element={<InvitePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

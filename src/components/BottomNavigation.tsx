@@ -46,11 +46,6 @@ export const BottomNavigation: React.FC = () => {
 
   const secondaryNavItems: NavItem[] = [
     {
-      path: '/invite',
-      icon: <Users className="h-4 w-4" />,
-      label: 'Davet Et'
-    },
-    {
       path: '/premium',
       icon: <Crown className="h-4 w-4" />,
       label: 'Premium',

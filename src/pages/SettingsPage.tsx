@@ -18,24 +18,37 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 
 import {
-  Settings,
   MapPin,
   Bell,
   Sun,
-  Moon,
   LocateFixed,
   Loader2,
   Info,
-  Calculator,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 
 import { toast } from "sonner";
-import { useSettingsStore, type CalculationMethod } from "@/store/settingsStore";
+import { motion } from "framer-motion";
+
+import { useSettingsStore } from "@/store/settingsStore";
+import { useThemeStore } from "@/store/themeStore";
 import { useUserStore } from "@/store/userStore";
 import { AdPlaceholder } from "@/components/AdPlaceholder";
 
-// --- TÜRKİYE 81 ŞEHİR ---
+// Animasyon yardımcıları
+const fadeIn = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35 } }
+};
+
+const stagger = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.12 }
+  }
+};
+
+// --- Türkiye Şehirleri ---
 const TURKEY_CITIES = [
   "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya",
   "Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik",
@@ -50,39 +63,38 @@ const TURKEY_CITIES = [
 ];
 
 const SettingsPage: React.FC = () => {
-  const {
-  city,
-  setCity,
-  setCityAuto
-} = useSettingsStore();
-
-
+  const { city, setCity, setCityAuto } = useSettingsStore();
   const { user } = useUserStore();
 
-  const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
+  // Tema Store
+  const { theme, setTheme } = useThemeStore();
+
   const [isLocating, setIsLocating] = useState(false);
 
-  // Tema değiştirme
-  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
-    setTheme(newTheme);
-    if (newTheme === "dark") document.documentElement.classList.add("dark");
-    else if (newTheme === "light") document.documentElement.classList.remove("dark");
-    else {
+  // Tema seçimi
+  const handleThemeChange = (value: "light" | "dark" | "system") => {
+    setTheme(value);
+
+    if (value === "dark") {
+      document.documentElement.classList.add("dark");
+    } else if (value === "light") {
+      document.documentElement.classList.remove("dark");
+    } else {
       window.matchMedia("(prefers-color-scheme: dark)").matches
         ? document.documentElement.classList.add("dark")
         : document.documentElement.classList.remove("dark");
     }
   };
 
-  // GPS şehri bul
+  // GPS ile şehir
   const handleGps = async () => {
     setIsLocating(true);
     const id = toast.loading("Konum alınıyor...");
 
     try {
-      await setCityAuto(); // sadece şehir set edilecek
+      await setCityAuto();
       toast.success("Konum güncellendi", { id });
-    } catch (error) {
+    } catch {
       toast.error("Konum alınamadı", { id });
     } finally {
       setIsLocating(false);
@@ -90,177 +102,187 @@ const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900">
+    <motion.div
+      variants={stagger}
+      initial="hidden"
+      animate="show"
+      className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900"
+    >
 
       {/* HEADER */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-pink-100/90 via-orange-100/90 to-blue-100/90 dark:from-purple-900/90 dark:via-blue-900/90 dark:to-cyan-900/90 backdrop-blur-md border-b border-pink-200/50 dark:border-purple-500/30 p-4">
+      <motion.div variants={fadeIn} className="sticky top-0 z-10 p-4 border-b backdrop-blur-md 
+        bg-gradient-to-r from-pink-100/90 via-orange-100/90 to-blue-100/90
+        dark:from-purple-900/90 dark:via-blue-900/90 dark:to-cyan-900/90">
+        
         <div className="text-center space-y-1">
-          <h1 className="text-2xl font-light text-pink-800 dark:text-purple-200">
-            Ayarlar
-          </h1>
+          <h1 className="text-2xl font-light text-pink-800 dark:text-purple-200">Ayarlar</h1>
           <p className="text-pink-600 dark:text-purple-400 font-light">
             Namaz vakitleri için şehrinizi seçin
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* CONTENT */}
-      <div className="pb-20 px-4 space-y-6 pt-6 w-full max-w-full overflow-x-hidden">
+      <div className="pb-20 px-4 space-y-6 pt-6">
 
-        {!user?.isPremium && (
-          <AdPlaceholder type="banner" className="w-full max-w-full mx-auto" />
-        )}
+        {!user?.isPremium && <AdPlaceholder type="banner" />}
 
-        {/* KONUM AYARLARI */}
-        <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 backdrop-blur-sm border-pink-200/50 dark:border-purple-500/30 w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
-              <MapPin className="h-5 w-5 text-blue-600 dark:text-cyan-400" />
-              <span>Şehir Seçimi</span>
-            </CardTitle>
-          </CardHeader>
+        {/* ŞEHİR KARTI */}
+        <motion.div variants={fadeIn}>
+          <Card className="backdrop-blur-sm bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80  dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 border-pink-200/50 dark:border-purple-500/30">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
+                <MapPin className="h-5 w-5 text-blue-600 dark:text-cyan-400" />
+                <span>Şehir Seçimi</span>
+              </CardTitle>
+            </CardHeader>
 
-          <CardContent className="space-y-4">
+            <CardContent className="space-y-4">
 
-            {/* ŞEHİR */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-pink-700 dark:text-purple-300">Şehir</label>
-              <Select value={city} onValueChange={setCity}>
-                <SelectTrigger className="w-full h-12 rounded-xl border-2 border-pink-300 dark:border-purple-600 bg-white dark:bg-gray-800">
-                  <SelectValue placeholder="Şehir seçin" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[400px] overflow-y-auto">
-                  {TURKEY_CITIES.map((c) => (
-                    <SelectItem key={c} value={c} className="text-base py-3">
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Select motion ile SARILMADI — DOĞRU */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-pink-700 dark:text-purple-300">
+                  Şehir
+                </label>
 
-            {/* GPS */}
-            <Button
-              onClick={handleGps}
-              disabled={isLocating}
-              className="w-full h-12 rounded-xl bg-gradient-to-r from-pink-500 via-orange-500 to-blue-500 text-white shadow-lg"
-            >
-              {isLocating ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Konum Alınıyor...
-                </>
-              ) : (
-                <>
-                  <LocateFixed className="h-5 w-5 mr-2" />
-                  Otomatik Konum Bul
-                </>
-              )}
-            </Button>
+                <Select value={city} onValueChange={setCity}>
+                  <SelectTrigger className="w-full h-12 rounded-xl border-2 border-pink-300 dark:border-purple-600 bg-white dark:bg-gray-800">
+                    <SelectValue placeholder="Şehir seçin" />
+                  </SelectTrigger>
 
-            {/* UYARI */}
-            <div className="p-3 rounded-lg bg-amber-100/70 border border-amber-300">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-700 mt-0.5" />
-                <div>
-                  <p className="text-xs text-amber-800 font-medium">
-                    📍 Sadece şehir merkezleri baz alınır.
-                  </p>
-                  <p className="text-xs text-amber-700 mt-1">
-                    Konuma göre 1–3 dakika farklılık olabilir.
-                  </p>
+                  <SelectContent className="max-h-[400px] overflow-y-auto">
+                    {TURKEY_CITIES.map((c) => (
+                      <SelectItem key={c} value={c} className="py-3 text-base">
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={handleGps}
+                  disabled={isLocating}
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-pink-500 via-orange-500 to-blue-500 text-white shadow-lg"
+                >
+                  {isLocating ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Konum Alınıyor...
+                    </>
+                  ) : (
+                    <>
+                      <LocateFixed className="h-5 w-5 mr-2" />
+                      Otomatik Konum Bul
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+
+              {/* Uyari */}
+              <div className="p-3 rounded-lg bg-amber-100/70 border border-amber-300">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-700 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-amber-800 font-medium">
+                      📍 Sadece şehir merkezleri baz alınır.
+                    </p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Konuma göre 1–3 dakika farklılık olabilir.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* TEMA AYARLARI */}
-        <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 border-pink-200/50 dark:border-purple-500/30 w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
-              <Sun className="h-5 w-5 text-yellow-600" />
-              <span>Tema Ayarları</span>
-            </CardTitle>
-          </CardHeader>
+        <motion.div variants={fadeIn}>
+          <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 border-pink-200/50 dark:border-purple-500/30">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
+                <Sun className="h-5 w-5 text-yellow-600" />
+                <span>Tema Ayarları</span>
+              </CardTitle>
+            </CardHeader>
 
-          <CardContent className="space-y-4">
-            <Select value={theme} onValueChange={handleThemeChange}>
-              <SelectTrigger className="w-full h-12 rounded-xl border-2 border-pink-300 dark:border-purple-600">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">🌞 Açık Tema</SelectItem>
-                <SelectItem value="dark">🌙 Koyu Tema</SelectItem>
-                <SelectItem value="system">📱 Sistem Teması</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+            <CardContent className="space-y-4">
 
-        {/* BİLDİRİM AYARLARI */}
-        <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 border-pink-200/50 dark:border-purple-500/30 w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
-              <Bell className="h-5 w-5 text-blue-600" />
-              <span>Bildirimler</span>
-            </CardTitle>
-          </CardHeader>
+              {/* Select yine motion içinde değil */}
+              <Select value={theme} onValueChange={handleThemeChange}>
+                <SelectTrigger className="w-full h-12 rounded-xl border-2 border-pink-300 dark:border-purple-600">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">🌞 Açık Tema</SelectItem>
+                  <SelectItem value="dark">🌙 Koyu Tema</SelectItem>
+                  <SelectItem value="system">📱 Sistem Teması</SelectItem>
+                </SelectContent>
+              </Select>
 
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/40 dark:bg-gray-700/40">
-              <span>Namaz Bildirimleri</span>
-              <Switch defaultChecked />
-            </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-            <Separator />
+        {/* BİLDİRİMLER */}
+        <motion.div variants={fadeIn}>
+          <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 border-pink-200/50 dark:border-purple-500/30">
+            <CardHeader>
+              <CardTitle className="flex items-start space-x-2 text-lg font-light text-pink-800 dark:text-purple-200">
+                <Bell className="h-5 w-5 text-blue-600" />
+                <span>Bildirimler</span>
+              </CardTitle>
+            </CardHeader>
 
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/40 dark:bg-gray-700/40">
-              <span>Sesli Bildirim</span>
-              <Switch defaultChecked />
-            </div>
-          </CardContent>
-        </Card>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/40 dark:bg-gray-700/40">
+                <span>Namaz Bildirimleri</span>
+                <Switch defaultChecked />
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/40 dark:bg-gray-700/40">
+                <span>Sesli Bildirim</span>
+                <Switch defaultChecked />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* APP INFO */}
-        <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 border-pink-200/50 dark:border-purple-500/30 w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg font-light">
-              <Info className="h-5 w-5 text-blue-600" />
-              Uygulama Bilgileri
-            </CardTitle>
-          </CardHeader>
+        <motion.div variants={fadeIn}>
+          <Card className="bg-gradient-to-r from-pink-100/80 via-orange-100/80 to-blue-100/80 dark:from-purple-800/60 dark:via-blue-800/60 dark:to-cyan-800/60 border-pink-200/50 dark:border-purple-500/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg font-light">
+                <Info className="h-5 w-5 text-blue-600" />
+                Uygulama Bilgileri
+              </CardTitle>
+            </CardHeader>
 
-          <CardContent>
-            <div className="flex justify-between py-2">
-              <span>Sürüm</span>
-              <span className="font-medium">1.0.0</span>
-            </div>
+            <CardContent>
+              <div className="flex justify-between py-2">
+                <span>Sürüm</span>
+                <span className="font-medium">1.0.0</span>
+              </div>
 
-            <Separator />
+              <Separator />
 
-            <div className="flex justify-between py-2">
-              <span>Geliştirici</span>
-              <span className="font-medium">MGX Team</span>
-            </div>
+              <div className="flex justify-between py-2">
+                <span>Geliştirici</span>
+                <span className="font-medium">M. Akın</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-            <Separator />
-
-            <div className="flex justify-between py-2">
-              <span>Vakit Kaynağı</span>
-              <span className="font-medium">Global</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {!user?.isPremium && (
-          <AdPlaceholder type="banner" className="w-full mx-auto" />
-        )}
-
+        {!user?.isPremium && <AdPlaceholder type="banner" />}
         <div className="h-4" />
       </div>
-    </div>
+    </motion.div>
   );
 };
 

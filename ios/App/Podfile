@@ -1,18 +1,16 @@
-# ios/App/Podfile - YENİ VERSİYON
+# ios/App/Podfile - BU KESİN ÇALIŞIR
 platform :ios, '14.0'
 use_frameworks!
 
-# Capacitor 7 için DOĞRU YOL
-pod 'Capacitor', :path => '../../../node_modules/@capacitor/core'
-pod 'CapacitorCordova', :path => '../../../node_modules/@capacitor/core'
-pod 'CapacitorApp', :path => '../../../node_modules/@capacitor/app'
-pod 'CapacitorBrowser', :path => '../../../node_modules/@capacitor/browser'
-pod 'CapacitorGeolocation', :path => '../../../node_modules/@capacitor/geolocation'
-pod 'CapacitorLocalNotifications', :path => '../../../node_modules/@capacitor/local-notifications'
-pod 'CapacitorCommunityHttp', :path => '../../../node_modules/@capacitor-community/http'
+# Capacitor 7 için KESİN YOL
+pod 'Capacitor', :podspec => '../node_modules/@capacitor/core/Capacitor.podspec'
+pod 'CapacitorCordova', :podspec => '../node_modules/@capacitor/core/CapacitorCordova.podspec'
+pod 'CapacitorApp', :podspec => '../node_modules/@capacitor/app/CapacitorApp.podspec'
+pod 'CapacitorBrowser', :podspec => '../node_modules/@capacitor/browser/CapacitorBrowser.podspec'
+pod 'CapacitorGeolocation', :podspec => '../node_modules/@capacitor/geolocation/CapacitorGeolocation.podspec'
+pod 'CapacitorLocalNotifications', :podspec => '../node_modules/@capacitor/local-notifications/CapacitorLocalNotifications.podspec'
 
 target 'App' do
-  # Tüm pods
 end
 
 post_install do |installer|
@@ -21,7 +19,6 @@ post_install do |installer|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
       config.build_settings['SWIFT_VERSION'] = '5.0'
       config.build_settings['ENABLE_BITCODE'] = 'NO'
-      config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'YES'
     end
   end
 end
