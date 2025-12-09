@@ -1,10 +1,29 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Crown, ShieldCheck, Zap, Ban, Star, Heart } from "lucide-react";
 
 export default function PremiumPage() {
+  // EKLENDİ: Yön değişikliğinde sayfayı koruma
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      // Sayfayı koru, hiçbir şey yapma
+      console.log('PremiumPage: Orientation changed, page preserved');
+    };
+    
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('resize', handleOrientationChange);
+    
+    // Sayfa yüklendiğinde kaydet
+    localStorage.setItem('last_visited_page', '/premium');
+    
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('resize', handleOrientationChange);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-orange-50 to-blue-50 
       dark:from-purple-900 dark:via-blue-900 dark:to-cyan-900 p-4">
@@ -44,7 +63,7 @@ export default function PremiumPage() {
               from-pink-500 via-orange-500 to-blue-500 text-white shadow-md hover:opacity-90"
             onClick={() => alert("Abonelik sistemi yakında aktif edilecek.")}
           >
-            Aylık 44 TL’ye Abone Ol
+            Aylık 44 TL'ye Abone Ol
           </Button>
         </CardContent>
       </Card>

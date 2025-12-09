@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { fadeIn, staggerContainer, pop } from "@/lib/motion";
+import { useNavigate } from "react-router-dom"; // EKLENDİ
 
 import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCw, Navigation } from "lucide-react";
@@ -12,6 +13,7 @@ import { useUserStore } from "../store/userStore";
 import { Capacitor } from "@capacitor/core";
 
 export const QiblaPage: React.FC = () => {
+  const navigate = useNavigate(); // EKLENDİ
   const wheelRef = useRef<HTMLDivElement>(null);
   const arrowRef = useRef<HTMLDivElement>(null);
 
@@ -23,6 +25,41 @@ export const QiblaPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
 
+  // EKLENDİ: Yön değişikliğinde sayfayı koruma
+  useEffect(() => {
+    // Sayfa yüklendiğinde kaydet
+    localStorage.setItem('last_visited_page', '/qibla');
+    
+    // Qibla state'ini localStorage'dan yükle
+    const savedQibla = localStorage.getItem('qibla_direction');
+    const savedDistance = localStorage.getItem('qibla_distance');
+    
+    if (savedQibla && savedDistance) {
+      setQibla(parseFloat(savedQibla));
+      setDistance(parseFloat(savedDistance));
+      setLoading(false);
+    }
+    
+    const handleOrientationChange = () => {
+      // Sayfayı koru, hiçbir şey yapma
+      console.log('QiblaPage: Orientation changed, preserving state');
+      
+      // State'i localStorage'a kaydet
+      if (qibla > 0) {
+        localStorage.setItem('qibla_direction', qibla.toString());
+        localStorage.setItem('qibla_distance', distance.toString());
+      }
+    };
+    
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('resize', handleOrientationChange);
+    
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('resize', handleOrientationChange);
+    };
+  }, [qibla, distance]);
+
   // --------------------------------------------------------------------
   // KIBLE API
   // --------------------------------------------------------------------
@@ -32,6 +69,10 @@ export const QiblaPage: React.FC = () => {
     if (d?.direction) {
       setQibla(d.direction);
       setDistance(d.distance);
+      
+      // EKLENDİ: localStorage'a kaydet
+      localStorage.setItem('qibla_direction', d.direction.toString());
+      localStorage.setItem('qibla_distance', d.distance.toString());
     }
     setLoading(false);
   };
@@ -108,6 +149,11 @@ export const QiblaPage: React.FC = () => {
   }, []);
 
   const applyCalibration = () => setOffset((p) => (p + 180) % 360);
+
+  // EKLENDİ: Geri dönüş fonksiyonu
+  const goBack = () => {
+    navigate(-1);
+  };
 
   // --------------------------------------------------------------------
   // UI — ANİMASYONLU, HOMEPADE İLE AYNI TEMA
@@ -237,6 +283,14 @@ export const QiblaPage: React.FC = () => {
               >
                 <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
                 Yenile
+              </button>
+              
+              {/* EKLENDİ: Geri Dön Butonu */}
+              <button
+                onClick={goBack}
+                className="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-xs shadow-md"
+              >
+                ← Geri Dön
               </button>
             </motion.div>
           </CardContent>

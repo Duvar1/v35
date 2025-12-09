@@ -1,5 +1,5 @@
 // src/pages/SettingsPage.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -63,6 +63,56 @@ const TURKEY_CITIES = [
 ];
 
 const SettingsPage: React.FC = () => {
+  // EKLENDİ: Yön değişikliğinde koruma
+  useEffect(() => {
+    // Sayfa yüklendiğinde kaydet
+    localStorage.setItem('last_visited_page', '/settings');
+    
+    const handleOrientationChange = () => {
+      // BU ÇOK ÖNEMLİ: Hiçbir şey yapma, sayfa korunsun
+      console.log('SettingsPage: Orientation changed, preserving state');
+      
+      // Ayarları localStorage'a kaydet
+      const settingsToSave = {
+        city: city,
+        theme: theme,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('settings_state', JSON.stringify(settingsToSave));
+      
+      // Scroll pozisyonunu koru
+      setTimeout(() => {
+        const savedScroll = localStorage.getItem('settings_scroll_position');
+        if (savedScroll) {
+          window.scrollTo(0, parseInt(savedScroll));
+        }
+      }, 100);
+    };
+    
+    const handleBeforeUnload = () => {
+      // Sayfa kapanmadan önce scroll pozisyonunu kaydet
+      localStorage.setItem('settings_scroll_position', window.scrollY.toString());
+    };
+    
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('resize', handleOrientationChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Scroll pozisyonunu yükle
+    const savedScroll = localStorage.getItem('settings_scroll_position');
+    if (savedScroll) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedScroll));
+      }, 100);
+    }
+    
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('resize', handleOrientationChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   const { city, setCity, setCityAuto } = useSettingsStore();
   const { user } = useUserStore();
 
@@ -70,6 +120,16 @@ const SettingsPage: React.FC = () => {
   const { theme, setTheme } = useThemeStore();
 
   const [isLocating, setIsLocating] = useState(false);
+
+  // EKLENDİ: city değiştiğinde kaydet
+  useEffect(() => {
+    localStorage.setItem('selected_city', city);
+  }, [city]);
+
+  // EKLENDİ: theme değiştiğinde kaydet
+  useEffect(() => {
+    localStorage.setItem('selected_theme', theme);
+  }, [theme]);
 
   // Tema seçimi
   const handleThemeChange = (value: "light" | "dark" | "system") => {

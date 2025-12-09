@@ -1,6 +1,7 @@
 // src/pages/HomePage.tsx
 import React, { useEffect, useState } from 'react'; 
 import { motion } from "framer-motion";
+import { useNavigate } from 'react-router-dom';
 import { fadeIn, scaleIn, staggerContainer, pop } from "../lib/motion";
 
 import { fetchDailyHadith } from '../services/hadithService';
@@ -19,22 +20,59 @@ import { useUserStore } from '../store/userStore';
 import { PrayerTimesService } from '../services/prayerTimesService';
 
 export const HomePage: React.FC = () => {
+  const navigate = useNavigate();
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    
+    const handleOrientationChange = () => {
+      console.log('Orientation changed, state preserved');
+    };
+    
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('resize', handleOrientationChange);
+    
+    const handleBeforeUnload = () => {
+      localStorage.setItem('last_visited_page', '/');
+      localStorage.setItem('home_scroll_position', window.scrollY.toString());
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    const savedScroll = localStorage.getItem('home_scroll_position');
+    if (savedScroll) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedScroll));
+      }, 100);
+    }
+    
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('resize', handleOrientationChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
 
   const { prayerTimes, setPrayerTimes } = usePrayerStore();
   const { city, setCityAuto } = useSettingsStore();
   const { user } = useUserStore();
 
-  const [dailyVerse, setDailyVerse] = useState(null);
-  const [dailyHadith, setDailyHadith] = useState(null);
-  const [dailyDua, setDailyDua] = useState(null);
+  const [dailyVerse, setDailyVerse] = useState(() => {
+    const saved = localStorage.getItem('daily_verse');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [dailyHadith, setDailyHadith] = useState(() => {
+    const saved = localStorage.getItem('daily_hadith');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [dailyDua, setDailyDua] = useState(() => {
+    const saved = localStorage.getItem('daily_dua');
+    return saved ? JSON.parse(saved) : null;
+  });
 
-  const [verseLoading, setVerseLoading] = useState(true);
-  const [hadithLoading, setHadithLoading] = useState(true);
-  const [duaLoading, setDuaLoading] = useState(true);
+  const [verseLoading, setVerseLoading] = useState(!dailyVerse);
+  const [hadithLoading, setHadithLoading] = useState(!dailyHadith);
+  const [duaLoading, setDuaLoading] = useState(!dailyDua);
 
   useEffect(() => {
     if (!city) setCityAuto();
@@ -43,9 +81,18 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const v = await fetchDailyVerse();
-        setDailyVerse(v);
-      } finally { setVerseLoading(false); }
+        const today = new Date().toDateString();
+        const lastLoadDate = localStorage.getItem('verse_last_load');
+        
+        if (!dailyVerse || lastLoadDate !== today) {
+          const v = await fetchDailyVerse();
+          setDailyVerse(v);
+          localStorage.setItem('daily_verse', JSON.stringify(v));
+          localStorage.setItem('verse_last_load', today);
+        }
+      } finally { 
+        setVerseLoading(false); 
+      }
     };
     load();
   }, []);
@@ -53,9 +100,18 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const h = await fetchDailyHadith();
-        setDailyHadith(h);
-      } finally { setHadithLoading(false); }
+        const today = new Date().toDateString();
+        const lastLoadDate = localStorage.getItem('hadith_last_load');
+        
+        if (!dailyHadith || lastLoadDate !== today) {
+          const h = await fetchDailyHadith();
+          setDailyHadith(h);
+          localStorage.setItem('daily_hadith', JSON.stringify(h));
+          localStorage.setItem('hadith_last_load', today);
+        }
+      } finally { 
+        setHadithLoading(false); 
+      }
     };
     load();
   }, []);
@@ -63,9 +119,18 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const d = await getDailyDua();
-        setDailyDua(d);
-      } finally { setDuaLoading(false); }
+        const today = new Date().toDateString();
+        const lastLoadDate = localStorage.getItem('dua_last_load');
+        
+        if (!dailyDua || lastLoadDate !== today) {
+          const d = await getDailyDua();
+          setDailyDua(d);
+          localStorage.setItem('daily_dua', JSON.stringify(d));
+          localStorage.setItem('dua_last_load', today);
+        }
+      } finally { 
+        setDuaLoading(false); 
+      }
     };
     load();
   }, []);
@@ -73,15 +138,30 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     const loadTimes = async () => {
       try {
-        const t = await PrayerTimesService.getPrayerTimes(city);
-        setPrayerTimes(t);
+        const today = new Date().toDateString();
+        const cachedTimes = localStorage.getItem(`prayer_times_${city}_${today}`);
+        
+        if (cachedTimes) {
+          setPrayerTimes(JSON.parse(cachedTimes));
+        } else {
+          const t = await PrayerTimesService.getPrayerTimes(city);
+          setPrayerTimes(t);
+          localStorage.setItem(`prayer_times_${city}_${today}`, JSON.stringify(t));
+        }
       } catch {}
     };
-    loadTimes();
+    if (city) {
+      loadTimes();
+    }
   }, [city]);
 
+  useEffect(() => {
+    if (prayerTimes) {
+      const today = new Date().toDateString();
+      localStorage.setItem(`prayer_times_${city}_${today}`, JSON.stringify(prayerTimes));
+    }
+  }, [prayerTimes, city]);
 
-  // SONRAKİ NAMAZ
   const getNextPrayer = () => {
     if (!prayerTimes) return null;
     const now = new Date();
@@ -95,6 +175,11 @@ export const HomePage: React.FC = () => {
   };
 
   const nextPrayer = getNextPrayer();
+
+  const goToPage = (path: string) => {
+    localStorage.setItem('last_visited_page', path);
+    navigate(path);
+  };
 
   return (
     <motion.div 
@@ -190,8 +275,9 @@ export const HomePage: React.FC = () => {
                   <div className="text-sm text-gray-700 dark:text-gray-300 italic">
                     "{dailyVerse.turkish}"
                   </div>
-                  <div className="text-xs text-green-700 dark:text-emerald-400 font-medium">
-                    📖 {dailyVerse.reference}
+                  <div className="text-xs text-green-700 dark:text-emerald-400 font-medium flex justify-between items-center">
+                    <span>📖 {dailyVerse.reference}</span>
+                    <span className="text-xs opacity-70">Kur'an-ı Kerim</span>
                   </div>
                 </div>
               </CardContent>
@@ -221,6 +307,14 @@ export const HomePage: React.FC = () => {
                   <div className="text-sm text-gray-700 dark:text-gray-300 italic">
                     "{dailyDua.TURKISH_TEXT}"
                   </div>
+                  
+                  {/* EKLENDİ: Hisn-Muslim kaynağı */}
+                  <div className="pt-2 mt-2 border-t border-amber-200/50 dark:border-amber-800/30">
+                    <div className="text-xs text-amber-700 dark:text-amber-400 font-medium flex justify-between items-center">
+                      <span>📖 Hisn-Muslim</span>
+                      <span className="text-xs opacity-70">Sahih Dua Koleksiyonu</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -249,6 +343,14 @@ export const HomePage: React.FC = () => {
                   <div className="text-sm text-gray-700 dark:text-gray-300 italic whitespace-pre-line">
                     "{dailyHadith.explanation}"
                   </div>
+                  
+                  {/* EKLENDİ: Sahih Muslim kaynağı */}
+                  <div className="pt-2 mt-2 border-t border-purple-200/50 dark:border-purple-800/30">
+                    <div className="text-xs text-purple-700 dark:text-purple-400 font-medium flex justify-between items-center">
+                      <span>📖 Sahih Muslim</span>
+                      <span className="text-xs opacity-70">Sahih Hadis Koleksiyonu</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -273,7 +375,7 @@ export const HomePage: React.FC = () => {
                 {/** KIBLE */}
                 <motion.div whileHover={pop.hover} whileTap={pop.tap}>
                   <Button 
-                    onClick={() => (window.location.href='/qibla')}
+                    onClick={() => goToPage('/qibla')}
                     className="h-14 w-full rounded-xl bg-gradient-to-r 
                     from-green-500 to-emerald-500 border-0 text-white flex flex-col items-center justify-center gap-1"
                   >
@@ -285,7 +387,7 @@ export const HomePage: React.FC = () => {
                 {/** VAKİTLER */}
                 <motion.div whileHover={pop.hover} whileTap={pop.tap}>
                   <Button 
-                    onClick={() => (window.location.href='/prayer-times')}
+                    onClick={() => goToPage('/prayer-times')}
                     className="h-14 w-full rounded-xl bg-gradient-to-r 
                     from-blue-500 to-cyan-500 border-0 text-white flex flex-col items-center justify-center gap-1"
                   >
@@ -297,7 +399,7 @@ export const HomePage: React.FC = () => {
                 {/** KURAN */}
                 <motion.div whileHover={pop.hover} whileTap={pop.tap}>
                   <Button 
-                    onClick={() => (window.location.href='/quran')}
+                    onClick={() => goToPage('/quran')}
                     className="h-14 w-full rounded-xl bg-gradient-to-r 
                     from-purple-500 to-pink-500 border-0 text-white flex flex-col items-center justify-center gap-1"
                   >
@@ -309,7 +411,7 @@ export const HomePage: React.FC = () => {
                 {/** AYARLAR */}
                 <motion.div whileHover={pop.hover} whileTap={pop.tap}>
                   <Button 
-                    onClick={() => (window.location.href='/settings')}
+                    onClick={() => goToPage('/settings')}
                     className="h-14 w-full rounded-xl bg-gradient-to-r 
                     from-gray-600 to-gray-700 border-0 text-white flex flex-col items-center justify-center gap-1"
                   >
